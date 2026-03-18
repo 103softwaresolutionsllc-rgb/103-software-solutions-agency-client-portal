@@ -424,7 +424,7 @@ router.get("/projects/:id/phases", async (req, res) => {
         description: p.description,
         order: p.order,
         status: p.status,
-        isActive: p.status === "active" || p.status === "completed",
+        isActive: p.status === "active" || p.status === "completed" || p.status === "in-progress",
       })),
     });
   } catch (err) {

@@ -74,19 +74,17 @@ router.get("/project", async (req, res) => {
       .where(eq(invoices.projectId, project.id))
       .orderBy(asc(invoices.createdAt));
 
-    // Get per-project phase activation state from DB
+    // Get per-project phase rows from DB (all phases, including pending future ones)
     const projectPhases = await db
       .select()
       .from(phases)
       .where(eq(phases.projectId, project.id))
       .orderBy(asc(phases.order));
 
-    // Determine max visible phase from DB activations (or package phases as fallback)
-    const activePhaseOrders = projectPhases
-      .filter(p => p.status === "active" || p.status === "completed" || p.status === "in-progress")
-      .map(p => p.order);
-    const dbMaxPhase = activePhaseOrders.length > 0 ? Math.max(...activePhaseOrders) : 0;
-    const maxVisiblePhase = dbMaxPhase > 0 ? dbMaxPhase : (pkg?.phases ?? 5);
+    // maxVisiblePhase = total phases the client is entitled to see per their package.
+    // This is the count of phase rows in DB (or pkg.phases as fallback), NOT the current active phase.
+    // The client sees the full roadmap including pending future phases — only out-of-package phases are hidden.
+    const maxVisiblePhase = projectPhases.length > 0 ? projectPhases.length : (pkg?.phases ?? 5);
 
     res.json({
       project: {
