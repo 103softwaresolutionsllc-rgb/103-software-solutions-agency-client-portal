@@ -35,11 +35,18 @@ export function PortalLayout({ children, currentPhase = 0, maxPhase = 5, activeP
 
   const isPhaseVisible = (phase: number): boolean => {
     if (phase === 0) return true;
+    // Phases beyond the package entitlement count are always hidden
     if (phase > maxPhase) return false;
-    if (!activePhases || activePhases.length === 0) return true;
-    const phaseData = activePhases.find(p => p.order === phase);
-    if (!phaseData) return false;
-    return phaseData.isActive;
+    // If activePhases data is available, check whether admin explicitly deactivated this phase.
+    // Pending in-package phases (status="pending", isActive=false) are NOT hidden — they show as
+    // "what's ahead" in the roadmap. Only phases explicitly toggled off by admin are hidden.
+    if (activePhases && activePhases.length > 0) {
+      const phaseData = activePhases.find(p => p.order === phase);
+      // If phase exists in DB but was explicitly set to pending (never started), still show it
+      // Only hide if there's a phaseData record AND the status is not pending (meaning admin toggled it off from an active state)
+      if (phaseData && phaseData.status !== "pending" && !phaseData.isActive) return false;
+    }
+    return true;
   };
 
   return (
