@@ -2,9 +2,9 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import {
   clientAccounts, projects, clients, packages, checklistItems,
-  discoveryFormResponses, feedbackRounds, testimonials
+  discoveryFormResponses, feedbackRounds, testimonials, phases
 } from "@workspace/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, asc } from "drizzle-orm";
 import { hashPassword } from "../lib/auth.js";
 import { requireStaffAuth } from "../lib/auth.js";
 import { logActivity } from "../lib/activity.js";
@@ -282,6 +282,88 @@ router.put("/project/:id/phase", async (req, res) => {
     const [updated] = await db.update(projects).set({ currentPhase: phase, updatedAt: new Date() }).where(eq(projects.id, id)).returning();
     await logActivity({ action: "update", entityType: "project", entityId: id, description: `Advanced project to Phase ${phase}`, userId: user.id, organizationId: user.organizationId });
     res.json({ id: updated.id, currentPhase: updated.currentPhase });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /api/admin/portal/projects/:id/phases — list all phases for a project with activation status
+router.get("/projects/:id/phases", async (req, res) => {
+  try {
+    const user = req.user;
+    const id = parseInt(req.params.id);
+
+    const project = await db.select().from(projects).where(and(eq(projects.id, id), eq(projects.organizationId, user.organizationId))).limit(1);
+    if (!project[0]) {
+      res.status(404).json({ error: "Project not found" });
+      return;
+    }
+
+    const phaseRows = await db
+      .select()
+      .from(phases)
+      .where(eq(phases.projectId, id))
+      .orderBy(asc(phases.order));
+
+    res.json({
+      projectId: id,
+      currentPhase: project[0].currentPhase,
+      phases: phaseRows.map(p => ({
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        order: p.order,
+        status: p.status,
+        isActive: p.status === "active" || p.status === "completed",
+      })),
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// PATCH /api/admin/portal/projects/:id/phases/:phaseId/toggle — enable or disable a specific phase
+router.patch("/projects/:id/phases/:phaseId/toggle", async (req, res) => {
+  try {
+    const user = req.user;
+    const projectId = parseInt(req.params.id);
+    const phaseId = parseInt(req.params.phaseId);
+    const { active } = req.body;
+    if (typeof active !== "boolean") {
+      res.status(400).json({ error: "active (boolean) is required" });
+      return;
+    }
+
+    const project = await db.select().from(projects).where(and(eq(projects.id, projectId), eq(projects.organizationId, user.organizationId))).limit(1);
+    if (!project[0]) {
+      res.status(404).json({ error: "Project not found" });
+      return;
+    }
+
+    const phase = await db.select().from(phases).where(and(eq(phases.id, phaseId), eq(phases.projectId, projectId))).limit(1);
+    if (!phase[0]) {
+      res.status(404).json({ error: "Phase not found" });
+      return;
+    }
+
+    const newStatus = active ? "active" : "pending";
+    const [updated] = await db.update(phases)
+      .set({ status: newStatus, updatedAt: new Date() })
+      .where(eq(phases.id, phaseId))
+      .returning();
+
+    await logActivity({
+      action: "update",
+      entityType: "project",
+      entityId: projectId,
+      description: `${active ? "Activated" : "Deactivated"} phase "${updated.name}"`,
+      userId: user.id,
+      organizationId: user.organizationId,
+    });
+
+    res.json({ id: updated.id, name: updated.name, status: updated.status, isActive: active });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Internal server error" });

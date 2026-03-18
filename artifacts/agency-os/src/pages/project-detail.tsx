@@ -115,6 +115,12 @@ export default function ProjectDetail() {
   const { data: project, isLoading } = useProjectDetail(projectId);
   const { data: clientData } = useClientData(projectId);
 
+  const { data: phaseData } = useQuery({
+    queryKey: [`/api/admin/portal/projects/${projectId}/phases`],
+    queryFn: () => apiFetch(`/api/admin/portal/projects/${projectId}/phases`),
+    enabled: !!projectId,
+  });
+
   const advancePhaseMutation = useMutation({
     mutationFn: (newPhase: number) =>
       apiFetch(`/api/admin/portal/project/${projectId}/phase`, {
@@ -129,6 +135,22 @@ export default function ProjectDetail() {
     },
     onError: (err: Error) => {
       toast({ title: "Error advancing phase", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const togglePhaseMutation = useMutation({
+    mutationFn: ({ phaseId, active }: { phaseId: number; active: boolean }) =>
+      apiFetch(`/api/admin/portal/projects/${projectId}/phases/${phaseId}/toggle`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ active }),
+      }),
+    onSuccess: (_data, { active }) => {
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/portal/projects/${projectId}/phases`] });
+      toast({ title: active ? "Phase activated" : "Phase deactivated" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error toggling phase", description: err.message, variant: "destructive" });
     },
   });
 
@@ -217,34 +239,59 @@ export default function ProjectDetail() {
 
         {/* Phase management */}
         <div className="glass-card rounded-2xl p-6">
-          <h2 className="text-xl font-bold mb-5">Phase Journey</h2>
-          <div className="flex flex-wrap gap-3 mb-6">
-            {[1, 2, 3, 4, 5].slice(0, maxPhase).map(phase => {
-              const isComplete = phase < currentPhase;
-              const isActive = phase === currentPhase;
-              const isLocked = phase > currentPhase;
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-xl font-bold">Phase Journey</h2>
+            <span className="text-xs text-muted-foreground">Current: Phase {currentPhase} — {PHASE_LABELS[currentPhase]}</span>
+          </div>
+          <div className="space-y-3 mb-6">
+            {[1, 2, 3, 4, 5].slice(0, maxPhase).map(phaseNum => {
+              const isComplete = phaseNum < currentPhase;
+              const isActive = phaseNum === currentPhase;
+              const dbPhase = phaseData?.phases?.find((p: { order: number; id: number; name: string; status: string; isActive: boolean }) => p.order === phaseNum);
+              const phaseEnabled = dbPhase?.isActive ?? (phaseNum <= currentPhase);
               return (
                 <div
-                  key={phase}
-                  className={`flex-1 min-w-[120px] rounded-xl p-4 border text-center transition-all ${
+                  key={phaseNum}
+                  className={`flex items-center gap-4 rounded-xl p-4 border transition-all ${
                     isActive ? "border-primary/50 bg-primary/10" :
                     isComplete ? "border-emerald-500/30 bg-emerald-500/5" :
-                    "border-white/5 bg-white/2"
+                    "border-white/5 bg-white/[0.02]"
                   }`}
                 >
-                  <div className={`text-xs font-bold tracking-wider mb-1 ${isActive ? "text-primary" : isComplete ? "text-emerald-400" : "text-muted-foreground"}`}>
-                    {isComplete ? "✓ DONE" : isActive ? "● ACTIVE" : "LOCKED"}
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-sm font-semibold text-foreground">Phase {phaseNum}: {PHASE_LABELS[phaseNum]}</span>
+                      <span className={`text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-full ${
+                        isActive ? "bg-primary/20 text-primary" :
+                        isComplete ? "bg-emerald-500/20 text-emerald-400" :
+                        "bg-white/5 text-muted-foreground"
+                      }`}>
+                        {isComplete ? "DONE" : isActive ? "ACTIVE" : "UPCOMING"}
+                      </span>
+                    </div>
                   </div>
-                  <div className="text-sm font-semibold text-foreground">Phase {phase}</div>
-                  <div className="text-xs text-muted-foreground">{PHASE_LABELS[phase]}</div>
+                  {dbPhase && (
+                    <button
+                      onClick={() => togglePhaseMutation.mutate({ phaseId: dbPhase.id, active: !phaseEnabled })}
+                      disabled={togglePhaseMutation.isPending}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                        phaseEnabled ? "bg-primary" : "bg-white/10"
+                      }`}
+                      title={phaseEnabled ? "Deactivate phase" : "Activate phase"}
+                    >
+                      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        phaseEnabled ? "translate-x-5" : "translate-x-0"
+                      }`} />
+                    </button>
+                  )}
                 </div>
               );
             })}
           </div>
           {currentPhase < maxPhase && (
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 pt-3 border-t border-white/5">
               <p className="text-sm text-muted-foreground flex-1">
-                Ready to advance? Moving to Phase {currentPhase + 1} ({PHASE_LABELS[currentPhase + 1]}) will unlock that phase in the client portal.
+                Ready to advance? Moving to Phase {currentPhase + 1} ({PHASE_LABELS[currentPhase + 1]}) will update the client portal.
               </p>
               <Button
                 onClick={() => advancePhaseMutation.mutate(currentPhase + 1)}
@@ -257,7 +304,7 @@ export default function ProjectDetail() {
             </div>
           )}
           {currentPhase === maxPhase && (
-            <p className="text-sm text-emerald-400 font-medium">All phases complete for this package.</p>
+            <p className="text-sm text-emerald-400 font-medium pt-3 border-t border-white/5">All phases complete for this package.</p>
           )}
         </div>
 

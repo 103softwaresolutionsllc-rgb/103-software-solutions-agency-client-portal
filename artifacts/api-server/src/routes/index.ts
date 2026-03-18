@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import healthRouter from "./health.js";
 import authRouter from "./auth.js";
 import clientsRouter from "./clients.js";
@@ -22,7 +22,19 @@ router.use("/invoices", invoicesRouter);
 router.use(phasesRouter);
 router.use("/activity", activityRouter);
 router.use("/dashboard", dashboardRouter);
+
+// Portal routes — canonical (/api/portal/*) and alias (/api/client/*)
 router.use("/portal", portalRouter);
+router.use("/client", portalRouter);
+
+// Admin portal routes — canonical (/api/admin/portal/*)
 router.use("/admin/portal", adminPortalRouter);
+
+// /api/admin/projects/:id/* — alias that rewrites to /projects/:id/* and forwards to adminPortalRouter
+router.use("/admin/projects/:projectId", (req: Request, res: Response, next: NextFunction) => {
+  const projectId = (req.params as { projectId: string }).projectId;
+  req.url = `/projects/${projectId}${req.path === "/" ? "" : req.path}`;
+  (adminPortalRouter as Router)(req, res, next);
+});
 
 export default router;

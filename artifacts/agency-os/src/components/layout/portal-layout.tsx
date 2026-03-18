@@ -10,8 +10,6 @@ import {
   Rocket,
   Star,
   LogOut,
-  ChevronRight,
-  Lock
 } from "lucide-react";
 
 const phaseNav = [
@@ -49,25 +47,25 @@ export function PortalLayout({ children, currentPhase = 0, maxPhase = 5 }: Porta
             <p className="px-4 text-[10px] font-bold tracking-[0.2em] text-muted-foreground uppercase mb-3">Your Journey</p>
             <nav className="flex flex-col gap-1">
               {phaseNav.map((item) => {
+                // Hide phases that exceed the package's phase count (phase 0 = overview, always show)
+                if (item.phase > 0 && item.phase > maxPhase) return null;
+
                 const isActive = location === item.href;
-                const isLocked = item.phase > maxPhase;
                 const isCompleted = item.phase > 0 && item.phase < currentPhase;
                 const isCurrent = item.phase === currentPhase;
 
                 return (
-                  <Link key={item.href} href={isLocked ? "#" : item.href} className="block">
+                  <Link key={item.href} href={item.href} className="block">
                     <div
                       className={cn(
                         "group relative flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300",
                         isActive
                           ? "text-primary bg-primary/10 shadow-[inset_0_0_20px_0_hsl(var(--primary)/0.1)]"
-                          : isLocked
-                          ? "text-muted-foreground/40 cursor-not-allowed"
                           : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
                       )}
                     >
                       <div className="relative">
-                        <item.icon className={cn("h-5 w-5 shrink-0", isActive ? "text-primary" : isLocked ? "text-muted-foreground/30" : isCompleted ? "text-emerald-400" : "text-muted-foreground")} />
+                        <item.icon className={cn("h-5 w-5 shrink-0", isActive ? "text-primary" : isCompleted ? "text-emerald-400" : "text-muted-foreground")} />
                         {isCompleted && (
                           <div className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-emerald-400" />
                         )}
@@ -81,7 +79,6 @@ export function PortalLayout({ children, currentPhase = 0, maxPhase = 5 }: Porta
                           <span className="text-[10px] text-muted-foreground/60 truncate">{item.description}</span>
                         )}
                       </div>
-                      {isLocked && <Lock className="ml-auto h-3 w-3 text-muted-foreground/30 shrink-0" />}
                       {isActive && (
                         <motion.div
                           layoutId="portal-sidebar-active"
