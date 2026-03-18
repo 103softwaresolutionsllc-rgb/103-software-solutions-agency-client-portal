@@ -51,6 +51,12 @@ const QUESTIONS = [
     type: "textarea",
   },
   {
+    id: "magic_wand",
+    label: "If you could wave a magic wand, what would the perfect outcome look like?",
+    placeholder: "Dream big — describe your ideal end result, the feeling, the impact...",
+    type: "textarea",
+  },
+  {
     id: "timeline",
     label: "Is there a hard deadline or key date we should know about?",
     placeholder: "e.g. We're launching at a trade show on March 15...",

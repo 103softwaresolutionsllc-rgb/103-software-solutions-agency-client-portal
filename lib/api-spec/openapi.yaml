@@ -161,6 +161,187 @@ paths:
               schema:
                 $ref: "#/components/schemas/PortalProjectData"
 
+  /portal/discovery:
+    post:
+      operationId: submitDiscoveryForm
+      tags: [portal]
+      summary: Submit or update the client discovery form
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                responses:
+                  type: object
+                  description: Key-value map of question IDs to answers
+                  properties:
+                    business_name:
+                      type: string
+                    business_description:
+                      type: string
+                    target_audience:
+                      type: string
+                    primary_goal:
+                      type: string
+                    top_competitors:
+                      type: string
+                    design_vibe:
+                      type: string
+                    must_haves:
+                      type: string
+                    magic_wand:
+                      type: string
+                    timeline:
+                      type: string
+                    additional_notes:
+                      type: string
+                  additionalProperties:
+                    type: string
+              required: [responses]
+      responses:
+        "200":
+          description: Discovery form saved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  submittedAt:
+                    type: string
+                    nullable: true
+                required: [id]
+
+  /portal/checklist/{itemId}:
+    patch:
+      operationId: toggleChecklistItem
+      tags: [portal]
+      summary: Mark a checklist item as complete or incomplete
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                isCompleted:
+                  type: boolean
+              required: [isCompleted]
+      responses:
+        "200":
+          description: Checklist item updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  isCompleted:
+                    type: boolean
+                  completedAt:
+                    type: string
+                    nullable: true
+                required: [id, isCompleted]
+        "404":
+          description: Checklist item not found
+
+  /portal/feedback:
+    post:
+      operationId: submitFeedbackRound
+      tags: [portal]
+      summary: Submit a new design feedback round
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                designArea:
+                  type: string
+                  description: The design area or page being reviewed
+                feedbackText:
+                  type: string
+                  description: The client's feedback content
+              required: [feedbackText]
+      responses:
+        "201":
+          description: Feedback round created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  roundNumber:
+                    type: integer
+                  designArea:
+                    type: string
+                    nullable: true
+                  feedbackText:
+                    type: string
+                  status:
+                    type: string
+                required: [id, roundNumber, feedbackText, status]
+        "403":
+          description: Max feedback rounds reached
+
+  /portal/testimonial:
+    post:
+      operationId: submitTestimonial
+      tags: [portal]
+      summary: Submit a client testimonial
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rating:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                testimonialText:
+                  type: string
+              required: [rating, testimonialText]
+      responses:
+        "201":
+          description: Testimonial submitted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  rating:
+                    type: integer
+                  testimonialText:
+                    type: string
+                required: [id, rating, testimonialText]
+        "409":
+          description: Testimonial already submitted
+
   /admin/projects/{id}/client-data:
     get:
       operationId: getAdminProjectClientData

@@ -93,12 +93,13 @@ async function seed() {
     { label: "Brand color palette", description: "Hex codes for all brand colors (primary, secondary, accents)", sortOrder: 2 },
     { label: "Brand fonts", description: "Font files or Google Font names used in your brand", sortOrder: 3 },
     { label: "Website copy / written content", description: "All page text: headings, body copy, CTAs, bio, services descriptions", sortOrder: 4 },
-    { label: "Professional photos", description: "Headshots, team photos, product/service imagery (high resolution)", sortOrder: 5 },
+    { label: "Professional headshots & photos", description: "Headshots, team photos, product/service imagery (high resolution, min 1200px wide)", sortOrder: 5 },
     { label: "Testimonials & social proof", description: "Client reviews, case studies, or star ratings to feature", sortOrder: 6 },
     { label: "Social media profile URLs", description: "Links to all active social profiles (Instagram, LinkedIn, Facebook, etc.)", sortOrder: 7 },
     { label: "Domain name & hosting access", description: "Domain login credentials or transfer authorization code", sortOrder: 8 },
-    { label: "Examples / inspiration websites", description: "3-5 websites you like the look or feel of (optional but helpful)", sortOrder: 9 },
-    { label: "Business email address", description: "The email address(es) to set up on your domain", sortOrder: 10 },
+    { label: "Legal page content", description: "Privacy Policy and Terms of Service text (or links to existing pages to replicate)", sortOrder: 9 },
+    { label: "Examples / inspiration websites", description: "3-5 websites you like the look or feel of (optional but helpful)", sortOrder: 10 },
+    { label: "Business email address", description: "The email address(es) to set up on your domain", sortOrder: 11 },
   ];
 
   const phase4Items = [
@@ -137,13 +138,33 @@ async function seed() {
   }
   console.log("Created checklist items");
 
+  // Canonical 5-phase rows for ALL projects (aligned to the client portal 5-phase process)
+  // Phase names: Discovery → Onboarding → Production → Launch → Post-Launch
+
+  // mobileApp: Phase 3 active (Discovery + Onboarding done, Production in-progress)
   await db.insert(phases).values([
-    { name: "Discovery & Planning", order: 1, status: "completed", projectId: mobileApp.id },
-    { name: "Design & Prototyping", order: 2, status: "completed", projectId: mobileApp.id },
-    { name: "Development", order: 3, status: "in-progress", projectId: mobileApp.id },
-    { name: "Testing & QA", order: 4, status: "pending", projectId: mobileApp.id },
-    { name: "Requirements Gathering", order: 1, status: "completed", projectId: crm.id },
-    { name: "Integration Development", order: 2, status: "in-progress", projectId: crm.id },
+    { name: "Discovery", order: 1, status: "completed", projectId: mobileApp.id },
+    { name: "Onboarding", order: 2, status: "completed", projectId: mobileApp.id },
+    { name: "Production", order: 3, status: "in-progress", projectId: mobileApp.id },
+    { name: "Launch", order: 4, status: "pending", projectId: mobileApp.id },
+    { name: "Post-Launch", order: 5, status: "pending", projectId: mobileApp.id },
+  ]);
+
+  // crm: Phase 2 active (Discovery done, Onboarding in-progress)
+  await db.insert(phases).values([
+    { name: "Discovery", order: 1, status: "completed", projectId: crm.id },
+    { name: "Onboarding", order: 2, status: "in-progress", projectId: crm.id },
+    { name: "Production", order: 3, status: "pending", projectId: crm.id },
+    { name: "Launch", order: 4, status: "pending", projectId: crm.id },
+    { name: "Post-Launch", order: 5, status: "pending", projectId: crm.id },
+  ]);
+
+  // ecommerce (Launchpad — 4 phases): Phase 1 active (Discovery in-progress)
+  await db.insert(phases).values([
+    { name: "Discovery", order: 1, status: "in-progress", projectId: ecommerce.id },
+    { name: "Onboarding", order: 2, status: "pending", projectId: ecommerce.id },
+    { name: "Production", order: 3, status: "pending", projectId: ecommerce.id },
+    { name: "Launch", order: 4, status: "pending", projectId: ecommerce.id },
   ]);
 
   await db.insert(milestones).values([
@@ -178,20 +199,23 @@ async function seed() {
   ]);
 
   // Seed discovery form response for Apex (Phase 3) — they completed Phase 1
+  // Note: keys match the QUESTIONS[].id values in portal-discovery.tsx
   const [apexClientAccount] = await db.select().from(clientAccounts).where(eq(clientAccounts.projectId, mobileApp.id)).limit(1);
   await db.insert(discoveryFormResponses).values({
     projectId: mobileApp.id,
     clientAccountId: apexClientAccount.id,
+    submittedAt: new Date("2025-01-05"),
     responses: {
-      businessName: "Apex Innovations Inc.",
-      websiteGoal: "Launch a new mobile app to allow our enterprise clients to manage their workflows on the go. We need iOS and Android apps with real-time sync.",
-      targetAudience: "Enterprise mid-market businesses with 50-500 employees, primarily decision-makers aged 35-55 who are tech-savvy but not technical.",
-      competitors: "Salesforce Mobile, Monday.com, and Asana. We want to be cleaner and faster than all of them.",
-      designPreference: "Modern, dark theme preferred. Clean and minimalist. We like the look of Linear.app and Vercel's design language.",
-      existingBranding: "Yes, we have a full brand guide. Colors: Electric Blue (#0066FF) and Near-Black (#0A0A0F). Font: Inter for UI, Sora for display.",
-      timeline: "Hard deadline of Q3 2025 for initial App Store submission. We have a product launch event on July 15th.",
-      budget: "We've approved $60,000 for Phase 1 through Phase 3. Post-launch support is an add-on we'll discuss.",
-      additionalNotes: "Our CTO will be the main point of contact for technical decisions. Please CC Jordan at jordan@apexinnovations.com on all technical updates.",
+      business_name: "Apex Innovations Inc.",
+      business_description: "We build enterprise workflow automation software for mid-market businesses. Our platform helps companies eliminate manual processes and integrate their existing tools. We serve clients in healthcare, finance, and logistics.",
+      target_audience: "Mid-market businesses with 50-500 employees — primarily CTOs, operations directors, and department heads aged 35-55 who are tech-savvy but not technical builders.",
+      primary_goal: "Launch native iOS and Android apps so our enterprise clients can manage workflows on the go with real-time sync to the desktop platform.",
+      top_competitors: "Salesforce Mobile, Monday.com, Asana. We want to be cleaner and faster than all of them — more Linear.app, less clutter.",
+      design_vibe: "Modern and dark. Clean, minimalist, focused. We love the design language of Linear.app and Vercel — premium but not flashy.",
+      must_haves: "Push notifications, offline mode, biometric login, dashboard with charts, ability to approve/reject workflows from the app.",
+      magic_wand: "If we could wave a magic wand and have the perfect outcome, clients would open the app and immediately know exactly where their project stands — no emails, no guessing. Every stakeholder always feels in the loop.",
+      timeline: "Hard deadline: App Store submission by Q3 2025. We have a product launch event on July 15th that we're building toward.",
+      additional_notes: "Our CTO will be the primary technical contact. Please CC Jordan at jordan@apexinnovations.com on all technical updates and decisions.",
     },
   });
 
