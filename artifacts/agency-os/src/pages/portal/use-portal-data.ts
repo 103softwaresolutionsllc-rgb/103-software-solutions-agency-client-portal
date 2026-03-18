@@ -105,8 +105,8 @@ export function usePortalData() {
       if (!res.ok) throw new Error("Failed to load portal data");
       const json = await res.json();
       setData(json);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load portal data");
     } finally {
       setIsLoading(false);
     }

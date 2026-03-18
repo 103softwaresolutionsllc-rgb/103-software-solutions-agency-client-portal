@@ -11,9 +11,10 @@ import {
   Star,
   LogOut,
 } from "lucide-react";
+import type { ActivePhase } from "@/pages/portal/use-portal-data";
 
 const phaseNav = [
-  { href: "/portal", label: "Overview", icon: Home, phase: 0 },
+  { href: "/portal", label: "Overview", icon: Home, phase: 0, description: null },
   { href: "/portal/discovery", label: "Phase 1: Discovery", icon: FileText, phase: 1, description: "Tell us about your business" },
   { href: "/portal/onboarding", label: "Phase 2: Onboarding", icon: Upload, phase: 2, description: "Upload content & assets" },
   { href: "/portal/production", label: "Phase 3: Production", icon: Palette, phase: 3, description: "Review & provide feedback" },
@@ -25,11 +26,21 @@ interface PortalLayoutProps {
   children: React.ReactNode;
   currentPhase?: number;
   maxPhase?: number;
+  activePhases?: ActivePhase[];
 }
 
-export function PortalLayout({ children, currentPhase = 0, maxPhase = 5 }: PortalLayoutProps) {
+export function PortalLayout({ children, currentPhase = 0, maxPhase = 5, activePhases }: PortalLayoutProps) {
   const [location] = useLocation();
   const { user, logout } = useAuth();
+
+  const isPhaseVisible = (phase: number): boolean => {
+    if (phase === 0) return true;
+    if (phase > maxPhase) return false;
+    if (!activePhases || activePhases.length === 0) return true;
+    const phaseData = activePhases.find(p => p.order === phase);
+    if (!phaseData) return false;
+    return phaseData.isActive;
+  };
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -47,8 +58,7 @@ export function PortalLayout({ children, currentPhase = 0, maxPhase = 5 }: Porta
             <p className="px-4 text-[10px] font-bold tracking-[0.2em] text-muted-foreground uppercase mb-3">Your Journey</p>
             <nav className="flex flex-col gap-1">
               {phaseNav.map((item) => {
-                // Hide phases that exceed the package's phase count (phase 0 = overview, always show)
-                if (item.phase > 0 && item.phase > maxPhase) return null;
+                if (!isPhaseVisible(item.phase)) return null;
 
                 const isActive = location === item.href;
                 const isCompleted = item.phase > 0 && item.phase < currentPhase;

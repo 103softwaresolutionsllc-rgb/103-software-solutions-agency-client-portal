@@ -208,6 +208,7 @@ router.post("/discovery", async (req, res) => {
 });
 
 // PATCH /api/portal/checklist/:id — toggle checklist item
+// Phase 4 (Launch) checklist items are agency-controlled and read-only for clients
 router.patch("/checklist/:id", async (req, res) => {
   try {
     const account = req.clientAccount;
@@ -223,6 +224,12 @@ router.patch("/checklist/:id", async (req, res) => {
 
     if (!item[0]) {
       res.status(404).json({ error: "Checklist item not found" });
+      return;
+    }
+
+    // Phase 4 (Launch) items are agency-controlled — read-only for clients
+    if (item[0].phase === 4) {
+      res.status(403).json({ error: "Launch phase checklist items are completed by the agency, not the client." });
       return;
     }
 

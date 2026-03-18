@@ -14,6 +14,7 @@ export default function PortalOnboarding() {
 
   const currentPhase = data?.project.currentPhase ?? 1;
   const maxPhase = data?.maxVisiblePhase ?? data?.package?.phases ?? 5;
+  const activePhases = data?.activePhases ?? [];
   const phase2Items = data?.checklist.filter(c => c.phase === 2) ?? [];
   const completedCount = phase2Items.filter(c => c.isCompleted).length;
   const progressPct = phase2Items.length > 0 ? (completedCount / phase2Items.length) * 100 : 0;
@@ -41,7 +42,7 @@ export default function PortalOnboarding() {
   };
 
   return (
-    <PortalLayout currentPhase={currentPhase} maxPhase={maxPhase}>
+    <PortalLayout currentPhase={currentPhase} maxPhase={maxPhase} activePhases={activePhases}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
         <div>
           <div className="flex items-center gap-3 mb-3">

@@ -49,6 +49,7 @@ export default function PortalProduction() {
 
   const currentPhase = data?.project.currentPhase ?? 1;
   const maxPhase = data?.maxVisiblePhase ?? data?.package?.phases ?? 5;
+  const activePhases = data?.activePhases ?? [];
   const feedbackRounds = data?.feedbackRounds ?? [];
 
   const MAX_ROUNDS = 2;
@@ -89,7 +90,7 @@ export default function PortalProduction() {
   };
 
   return (
-    <PortalLayout currentPhase={currentPhase} maxPhase={maxPhase}>
+    <PortalLayout currentPhase={currentPhase} maxPhase={maxPhase} activePhases={activePhases}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
         <div>
           <div className="flex items-center gap-3 mb-3">

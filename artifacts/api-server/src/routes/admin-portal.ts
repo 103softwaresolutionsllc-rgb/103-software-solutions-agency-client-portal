@@ -116,8 +116,8 @@ router.post("/client-accounts", async (req, res) => {
       isActive: account.isActive,
       createdAt: account.createdAt.toISOString(),
     });
-  } catch (err: any) {
-    if (err.code === "23505") {
+  } catch (err) {
+    if (err instanceof Error && (err as NodeJS.ErrnoException).code === "23505") {
       res.status(409).json({ error: "An account with this email already exists" });
       return;
     }
@@ -329,8 +329,8 @@ router.post("/projects/:id/client-account", async (req, res) => {
       isActive: account.isActive,
       createdAt: account.createdAt.toISOString(),
     });
-  } catch (err: any) {
-    if (err.code === "23505") {
+  } catch (err) {
+    if (err instanceof Error && (err as NodeJS.ErrnoException).code === "23505") {
       res.status(409).json({ error: "An account with this email already exists" });
       return;
     }

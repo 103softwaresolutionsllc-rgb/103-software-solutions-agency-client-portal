@@ -43,6 +43,7 @@ export default function PortalHome() {
   const { project, client, package: pkg, checklist, invoices } = data;
   const currentPhase = project.currentPhase;
   const maxPhase = data.maxVisiblePhase ?? pkg?.phases ?? 5;
+  const activePhases = data.activePhases ?? [];
 
   const phase2Items = checklist.filter(c => c.phase === 2);
   const phase2Done = phase2Items.filter(c => c.isCompleted).length;
@@ -51,7 +52,7 @@ export default function PortalHome() {
   const totalPaid = paidInvoices.reduce((sum, inv) => sum + inv.amount, 0);
 
   return (
-    <PortalLayout currentPhase={currentPhase} maxPhase={maxPhase}>
+    <PortalLayout currentPhase={currentPhase} maxPhase={maxPhase} activePhases={activePhases}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
         {/* Welcome header */}
         <div>

@@ -18,8 +18,8 @@ export default function Login() {
     setIsSubmitting(true);
     try {
       await login(email, password);
-    } catch (err: any) {
-      setError(err?.message || "Invalid credentials. Please try again.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Invalid credentials. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
