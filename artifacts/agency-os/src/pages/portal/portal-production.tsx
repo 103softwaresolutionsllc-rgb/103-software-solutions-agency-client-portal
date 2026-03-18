@@ -48,7 +48,7 @@ export default function PortalProduction() {
   const [showGuide, setShowGuide] = useState(false);
 
   const currentPhase = data?.project.currentPhase ?? 1;
-  const maxPhase = data?.package?.phases ?? 5;
+  const maxPhase = data?.maxVisiblePhase ?? data?.package?.phases ?? 5;
   const feedbackRounds = data?.feedbackRounds ?? [];
 
   const MAX_ROUNDS = 2;

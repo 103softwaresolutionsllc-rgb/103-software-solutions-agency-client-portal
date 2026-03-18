@@ -230,6 +230,115 @@ router.get("/projects/:id/portal-data", async (req, res) => {
   }
 });
 
+// GET /api/admin/portal/projects/:id/client-data — required path (plural projects)
+router.get("/projects/:id/client-data", async (req, res) => {
+  try {
+    const user = req.user;
+    const id = parseInt(req.params.id);
+
+    const project = await db.select().from(projects).where(and(eq(projects.id, id), eq(projects.organizationId, user.organizationId))).limit(1);
+    if (!project[0]) {
+      res.status(404).json({ error: "Project not found" });
+      return;
+    }
+
+    const [checklist, discovery, feedback, testi] = await Promise.all([
+      db.select().from(checklistItems).where(eq(checklistItems.projectId, id)),
+      db.select().from(discoveryFormResponses).where(eq(discoveryFormResponses.projectId, id)).limit(1),
+      db.select().from(feedbackRounds).where(eq(feedbackRounds.projectId, id)),
+      db.select().from(testimonials).where(eq(testimonials.projectId, id)).limit(1),
+    ]);
+
+    res.json({
+      checklist,
+      discoveryResponse: discovery[0] ?? null,
+      feedbackRounds: feedback,
+      testimonial: testi[0] ?? null,
+      currentPhase: project[0].currentPhase,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// PUT /api/admin/portal/projects/:id/phase — required path (plural projects)
+router.put("/projects/:id/phase", async (req, res) => {
+  try {
+    const user = req.user;
+    const id = parseInt(req.params.id);
+    const { phase } = req.body;
+    if (typeof phase !== "number" || phase < 1 || phase > 5) {
+      res.status(400).json({ error: "phase must be a number between 1 and 5" });
+      return;
+    }
+
+    const existing = await db.select().from(projects).where(and(eq(projects.id, id), eq(projects.organizationId, user.organizationId))).limit(1);
+    if (!existing[0]) {
+      res.status(404).json({ error: "Project not found" });
+      return;
+    }
+
+    const [updated] = await db.update(projects).set({ currentPhase: phase, updatedAt: new Date() }).where(eq(projects.id, id)).returning();
+    await logActivity({ action: "update", entityType: "project", entityId: id, description: `Advanced project to Phase ${phase}`, userId: user.id, organizationId: user.organizationId });
+    res.json({ id: updated.id, currentPhase: updated.currentPhase });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// POST /api/admin/portal/projects/:id/client-account — create client portal account for a project
+router.post("/projects/:id/client-account", async (req, res) => {
+  try {
+    const user = req.user;
+    const projectId = parseInt(req.params.id);
+    const { email, password } = req.body;
+    if (!email || !password) {
+      res.status(400).json({ error: "email and password are required" });
+      return;
+    }
+
+    const project = await db.select().from(projects).where(and(eq(projects.id, projectId), eq(projects.organizationId, user.organizationId))).limit(1);
+    if (!project[0]) {
+      res.status(404).json({ error: "Project not found" });
+      return;
+    }
+
+    const [account] = await db.insert(clientAccounts).values({
+      email,
+      passwordHash: hashPassword(password),
+      clientId: project[0].clientId,
+      projectId,
+      organizationId: user.organizationId,
+      isActive: true,
+    }).returning();
+
+    const existing = await db.select().from(checklistItems).where(eq(checklistItems.projectId, projectId)).limit(1);
+    if (!existing[0]) {
+      await seedChecklistItems(projectId);
+    }
+
+    await logActivity({ action: "create", entityType: "client_account", entityId: account.id, description: `Created client portal login: ${email}`, userId: user.id, organizationId: user.organizationId });
+
+    res.status(201).json({
+      id: account.id,
+      email: account.email,
+      clientId: account.clientId,
+      projectId: account.projectId,
+      isActive: account.isActive,
+      createdAt: account.createdAt.toISOString(),
+    });
+  } catch (err: any) {
+    if (err.code === "23505") {
+      res.status(409).json({ error: "An account with this email already exists" });
+      return;
+    }
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // GET /api/admin/portal/project/:id/client-data — alias for /projects/:id/portal-data (used by project detail page)
 router.get("/project/:id/client-data", async (req, res) => {
   try {

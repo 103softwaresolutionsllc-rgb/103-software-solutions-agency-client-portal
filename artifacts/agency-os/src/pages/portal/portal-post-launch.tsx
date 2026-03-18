@@ -41,7 +41,7 @@ export default function PortalPostLaunch() {
   const [submitting, setSubmitting] = useState(false);
 
   const currentPhase = data?.project.currentPhase ?? 1;
-  const maxPhase = data?.package?.phases ?? 5;
+  const maxPhase = data?.maxVisiblePhase ?? data?.package?.phases ?? 5;
   const existing = data?.testimonial;
 
   const handleSubmit = async (e: React.FormEvent) => {

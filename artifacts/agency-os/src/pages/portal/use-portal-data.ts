@@ -71,6 +71,14 @@ export interface PortalInvoice {
   paidDate: string | null;
 }
 
+export interface ActivePhase {
+  id: number;
+  name: string;
+  order: number;
+  status: string;
+  isActive: boolean;
+}
+
 export interface PortalData {
   project: PortalProject;
   client: PortalClient;
@@ -80,6 +88,8 @@ export interface PortalData {
   feedbackRounds: FeedbackRound[];
   testimonial: Testimonial | null;
   invoices: PortalInvoice[];
+  maxVisiblePhase: number;
+  activePhases: ActivePhase[];
 }
 
 export function usePortalData() {

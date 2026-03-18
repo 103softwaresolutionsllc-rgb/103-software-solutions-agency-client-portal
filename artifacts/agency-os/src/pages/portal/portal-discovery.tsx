@@ -105,7 +105,7 @@ export default function PortalDiscovery() {
   };
 
   const currentPhase = data?.project.currentPhase ?? 1;
-  const maxPhase = data?.package?.phases ?? 5;
+  const maxPhase = data?.maxVisiblePhase ?? data?.package?.phases ?? 5;
 
   return (
     <PortalLayout currentPhase={currentPhase} maxPhase={maxPhase}>

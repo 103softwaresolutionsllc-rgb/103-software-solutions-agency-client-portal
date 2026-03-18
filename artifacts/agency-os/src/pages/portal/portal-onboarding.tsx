@@ -13,7 +13,7 @@ export default function PortalOnboarding() {
   const [expanded, setExpanded] = useState<number | null>(null);
 
   const currentPhase = data?.project.currentPhase ?? 1;
-  const maxPhase = data?.package?.phases ?? 5;
+  const maxPhase = data?.maxVisiblePhase ?? data?.package?.phases ?? 5;
   const phase2Items = data?.checklist.filter(c => c.phase === 2) ?? [];
   const completedCount = phase2Items.filter(c => c.isCompleted).length;
   const progressPct = phase2Items.length > 0 ? (completedCount / phase2Items.length) * 100 : 0;
@@ -97,11 +97,13 @@ export default function PortalOnboarding() {
             Your Welcome Packet includes your project timeline, communication guidelines, revision policy, and our team contacts. Please review it before completing the checklist below.
           </p>
           <a
-            href="mailto:hello@103software.com?subject=Welcome Packet Request"
+            href="/welcome-packet.html"
+            target="_blank"
+            rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-400/10 text-emerald-400 text-sm font-semibold border border-emerald-400/20 hover:bg-emerald-400/15 transition-colors"
           >
-            <ExternalLink className="h-4 w-4" />
-            Request Welcome Packet
+            <FileDown className="h-4 w-4" />
+            View Welcome Packet
           </a>
         </div>
 

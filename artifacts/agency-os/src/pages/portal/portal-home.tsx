@@ -42,7 +42,7 @@ export default function PortalHome() {
 
   const { project, client, package: pkg, checklist, invoices } = data;
   const currentPhase = project.currentPhase;
-  const maxPhase = pkg?.phases ?? 5;
+  const maxPhase = data.maxVisiblePhase ?? pkg?.phases ?? 5;
 
   const phase2Items = checklist.filter(c => c.phase === 2);
   const phase2Done = phase2Items.filter(c => c.isCompleted).length;

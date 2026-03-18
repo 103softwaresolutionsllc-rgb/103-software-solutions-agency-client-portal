@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import {
   projects, clients, packages, clientAccounts, checklistItems,
-  discoveryFormResponses, feedbackRounds, testimonials, invoices
+  discoveryFormResponses, feedbackRounds, testimonials, invoices, phases
 } from "@workspace/db/schema";
 import { eq, and, asc } from "drizzle-orm";
 import { requireClientAuth } from "../lib/auth.js";
@@ -74,6 +74,20 @@ router.get("/project", async (req, res) => {
       .where(eq(invoices.projectId, project.id))
       .orderBy(asc(invoices.createdAt));
 
+    // Get per-project phase activation state from DB
+    const projectPhases = await db
+      .select()
+      .from(phases)
+      .where(eq(phases.projectId, project.id))
+      .orderBy(asc(phases.order));
+
+    // Determine max visible phase from DB activations (or package phases as fallback)
+    const activePhaseOrders = projectPhases
+      .filter(p => p.status === "active" || p.status === "completed" || p.status === "in-progress")
+      .map(p => p.order);
+    const dbMaxPhase = activePhaseOrders.length > 0 ? Math.max(...activePhaseOrders) : 0;
+    const maxVisiblePhase = dbMaxPhase > 0 ? dbMaxPhase : (pkg?.phases ?? 5);
+
     res.json({
       project: {
         id: project.id,
@@ -137,6 +151,14 @@ router.get("/project", async (req, res) => {
         amount: parseFloat(inv.amount),
         dueDate: inv.dueDate ? inv.dueDate.toISOString() : null,
         paidDate: inv.paidDate ? inv.paidDate.toISOString() : null,
+      })),
+      maxVisiblePhase,
+      activePhases: projectPhases.map(p => ({
+        id: p.id,
+        name: p.name,
+        order: p.order,
+        status: p.status,
+        isActive: p.status === "active" || p.status === "completed" || p.status === "in-progress",
       })),
     });
   } catch (err) {
