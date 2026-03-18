@@ -91,6 +91,22 @@ Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used b
 
 Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
 
+### `artifacts/agency-os` (`@workspace/agency-os`)
+
+React + Vite client portal application for 103 Software Solutions LLC. Dual-role design: staff users see the admin dashboard, client users see the 5-phase client portal.
+
+**Auth**: Single login page (`/login`) — dispatches to `/dashboard` (staff) or `/portal` (client) based on `accountType` in the JWT response.
+
+**Staff routes**: `/dashboard`, `/clients`, `/projects`, `/tasks`, `/invoices` — all behind `AuthGuard allowedRoles={['staff']}`
+
+**Client portal routes**: `/portal` (home), `/portal/discovery` (Phase 1 form), `/portal/onboarding` (Phase 2 checklist), `/portal/production` (Phase 3 feedback), `/portal/launch` (Phase 4 checklist), `/portal/post-launch` (Phase 5 testimonial)
+
+**Key files**:
+- `src/hooks/use-auth.tsx` — AuthProvider + AuthGuard with role-aware routing
+- `src/components/layout/portal-layout.tsx` — Client portal sidebar with phase navigation + lock icons
+- `src/pages/portal/use-portal-data.ts` — Custom hook fetching GET /api/portal/project
+- `src/pages/portal/portal-*.tsx` — 5 phase pages
+
 ### `scripts` (`@workspace/scripts`)
 
 Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.

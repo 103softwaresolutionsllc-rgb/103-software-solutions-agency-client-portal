@@ -1,11 +1,22 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
-import { useLogin, type User, type LoginRequest } from '@workspace/api-client-react';
+
+export interface AuthUser {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  organizationId: number;
+  clientId?: number;
+  projectId?: number;
+  createdAt: string;
+  accountType: 'staff' | 'client';
+}
 
 interface AuthContextType {
-  user: User | null;
+  user: AuthUser | null;
   token: string | null;
-  login: (data: LoginRequest) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -13,40 +24,45 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [, setLocation] = useLocation();
 
-  const loginMutation = useLogin();
-
   useEffect(() => {
-    // Check local storage on mount
     const storedToken = localStorage.getItem('agency_os_token');
     const storedUser = localStorage.getItem('agency_os_user');
-    
     if (storedToken && storedUser) {
       setToken(storedToken);
       try {
         setUser(JSON.parse(storedUser));
       } catch (e) {
-        console.error("Failed to parse user from local storage");
+        console.error("Failed to parse stored user");
       }
     }
     setIsLoading(false);
   }, []);
 
-  const login = async (data: LoginRequest) => {
-    try {
-      const response = await loginMutation.mutateAsync({ data });
-      setToken(response.token);
-      setUser(response.user);
-      localStorage.setItem('agency_os_token', response.token);
-      localStorage.setItem('agency_os_user', JSON.stringify(response.user));
+  const login = async (email: string, password: string) => {
+    const response = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || 'Login failed');
+    }
+    const data = await response.json();
+    setToken(data.token);
+    setUser(data.user);
+    localStorage.setItem('agency_os_token', data.token);
+    localStorage.setItem('agency_os_user', JSON.stringify(data.user));
+
+    if (data.user.accountType === 'client') {
+      setLocation('/portal');
+    } else {
       setLocation('/dashboard');
-    } catch (error) {
-      console.error('Login failed', error);
-      throw error;
     }
   };
 
@@ -73,15 +89,24 @@ export function useAuth() {
   return context;
 }
 
-export function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { token, isLoading } = useAuth();
+export function AuthGuard({ children, allowedRoles }: { children: React.ReactNode; allowedRoles?: ('staff' | 'client')[] }) {
+  const { token, user, isLoading } = useAuth();
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    if (!isLoading && !token) {
+    if (isLoading) return;
+    if (!token || !user) {
       setLocation('/login');
+      return;
     }
-  }, [isLoading, token, setLocation]);
+    if (allowedRoles && !allowedRoles.includes(user.accountType)) {
+      if (user.accountType === 'client') {
+        setLocation('/portal');
+      } else {
+        setLocation('/dashboard');
+      }
+    }
+  }, [isLoading, token, user, allowedRoles, setLocation]);
 
   if (isLoading) {
     return (
@@ -91,5 +116,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return token ? <>{children}</> : null;
+  if (!token || !user) return null;
+  if (allowedRoles && !allowedRoles.includes(user.accountType)) return null;
+  return <>{children}</>;
 }

@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, AuthGuard } from "@/hooks/use-auth";
 import NotFound from "@/pages/not-found";
 
-// Pages
+// Admin pages
 import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import Clients from "@/pages/clients";
@@ -13,7 +13,15 @@ import Projects from "@/pages/projects";
 import Tasks from "@/pages/tasks";
 import Invoices from "@/pages/invoices";
 
-// Intercept window.fetch to automatically include the Auth token for ALL generated TanStack query hooks
+// Client portal pages
+import PortalHome from "@/pages/portal/portal-home";
+import PortalDiscovery from "@/pages/portal/portal-discovery";
+import PortalOnboarding from "@/pages/portal/portal-onboarding";
+import PortalProduction from "@/pages/portal/portal-production";
+import PortalLaunch from "@/pages/portal/portal-launch";
+import PortalPostLaunch from "@/pages/portal/portal-post-launch";
+
+// Intercept window.fetch to inject auth token for API calls
 const originalFetch = window.fetch;
 window.fetch = async (...args) => {
   let [resource, config] = args;
@@ -30,10 +38,7 @@ window.fetch = async (...args) => {
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: {
-      retry: false,
-      refetchOnWindowFocus: false,
-    },
+    queries: { retry: false, refetchOnWindowFocus: false },
   },
 });
 
@@ -41,25 +46,44 @@ function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
-      
-      {/* Protected Routes */}
+
+      {/* Staff-only routes */}
       <Route path="/dashboard">
-        <AuthGuard><Dashboard /></AuthGuard>
+        <AuthGuard allowedRoles={['staff']}><Dashboard /></AuthGuard>
       </Route>
       <Route path="/clients">
-        <AuthGuard><Clients /></AuthGuard>
+        <AuthGuard allowedRoles={['staff']}><Clients /></AuthGuard>
       </Route>
       <Route path="/projects">
-        <AuthGuard><Projects /></AuthGuard>
+        <AuthGuard allowedRoles={['staff']}><Projects /></AuthGuard>
       </Route>
       <Route path="/tasks">
-        <AuthGuard><Tasks /></AuthGuard>
+        <AuthGuard allowedRoles={['staff']}><Tasks /></AuthGuard>
       </Route>
       <Route path="/invoices">
-        <AuthGuard><Invoices /></AuthGuard>
+        <AuthGuard allowedRoles={['staff']}><Invoices /></AuthGuard>
       </Route>
 
-      {/* Root redirects to dashboard by default (auth guard will bounce to login if needed) */}
+      {/* Client portal routes */}
+      <Route path="/portal">
+        <AuthGuard allowedRoles={['client']}><PortalHome /></AuthGuard>
+      </Route>
+      <Route path="/portal/discovery">
+        <AuthGuard allowedRoles={['client']}><PortalDiscovery /></AuthGuard>
+      </Route>
+      <Route path="/portal/onboarding">
+        <AuthGuard allowedRoles={['client']}><PortalOnboarding /></AuthGuard>
+      </Route>
+      <Route path="/portal/production">
+        <AuthGuard allowedRoles={['client']}><PortalProduction /></AuthGuard>
+      </Route>
+      <Route path="/portal/launch">
+        <AuthGuard allowedRoles={['client']}><PortalLaunch /></AuthGuard>
+      </Route>
+      <Route path="/portal/post-launch">
+        <AuthGuard allowedRoles={['client']}><PortalPostLaunch /></AuthGuard>
+      </Route>
+
       <Route path="/">
         <Redirect to="/dashboard" />
       </Route>

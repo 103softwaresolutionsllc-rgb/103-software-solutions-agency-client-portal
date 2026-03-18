@@ -8,6 +8,8 @@ import invoicesRouter from "./invoices.js";
 import phasesRouter from "./phases.js";
 import activityRouter from "./activity.js";
 import dashboardRouter from "./dashboard.js";
+import portalRouter from "./portal.js";
+import adminPortalRouter from "./admin-portal.js";
 
 const router: IRouter = Router();
 
@@ -20,5 +22,7 @@ router.use("/invoices", invoicesRouter);
 router.use(phasesRouter);
 router.use("/activity", activityRouter);
 router.use("/dashboard", dashboardRouter);
+router.use("/portal", portalRouter);
+router.use("/admin/portal", adminPortalRouter);
 
 export default router;

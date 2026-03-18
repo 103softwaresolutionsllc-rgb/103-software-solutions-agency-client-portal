@@ -1,0 +1,271 @@
+import { Router } from "express";
+import { db } from "@workspace/db";
+import {
+  clientAccounts, projects, clients, packages, checklistItems,
+  discoveryFormResponses, feedbackRounds, testimonials
+} from "@workspace/db/schema";
+import { eq, and } from "drizzle-orm";
+import { hashPassword } from "../lib/auth.js";
+import { requireStaffAuth } from "../lib/auth.js";
+import { logActivity } from "../lib/activity.js";
+
+const router = Router();
+
+router.use(requireStaffAuth);
+
+// GET /api/admin/portal/packages — list packages for this org
+router.get("/packages", async (req, res) => {
+  try {
+    const user = (req as any).user;
+    const rows = await db.select().from(packages).where(eq(packages.organizationId, user.organizationId));
+    res.json(rows.map(p => ({
+      id: p.id,
+      name: p.name,
+      slug: p.slug,
+      price: parseFloat(p.price),
+      description: p.description,
+      phases: p.phases,
+    })));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /api/admin/portal/client-accounts — list all client accounts
+router.get("/client-accounts", async (req, res) => {
+  try {
+    const user = (req as any).user;
+    const rows = await db
+      .select({
+        account: clientAccounts,
+        clientName: clients.name,
+        projectName: projects.name,
+      })
+      .from(clientAccounts)
+      .innerJoin(clients, eq(clients.id, clientAccounts.clientId))
+      .innerJoin(projects, eq(projects.id, clientAccounts.projectId))
+      .where(eq(clientAccounts.organizationId, user.organizationId));
+
+    res.json(rows.map(r => ({
+      id: r.account.id,
+      email: r.account.email,
+      clientId: r.account.clientId,
+      clientName: r.clientName,
+      projectId: r.account.projectId,
+      projectName: r.projectName,
+      isActive: r.account.isActive,
+      createdAt: r.account.createdAt.toISOString(),
+    })));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// POST /api/admin/portal/client-accounts — create a client portal account
+router.post("/client-accounts", async (req, res) => {
+  try {
+    const user = (req as any).user;
+    const { email, password, clientId, projectId } = req.body;
+    if (!email || !password || !clientId || !projectId) {
+      res.status(400).json({ error: "email, password, clientId, and projectId are required" });
+      return;
+    }
+
+    // Verify client + project belong to this org
+    const project = await db.select().from(projects).where(and(eq(projects.id, parseInt(projectId)), eq(projects.organizationId, user.organizationId))).limit(1);
+    if (!project[0]) {
+      res.status(404).json({ error: "Project not found" });
+      return;
+    }
+
+    const [account] = await db.insert(clientAccounts).values({
+      email,
+      passwordHash: hashPassword(password),
+      clientId: parseInt(clientId),
+      projectId: parseInt(projectId),
+      organizationId: user.organizationId,
+      isActive: true,
+    }).returning();
+
+    // Auto-seed onboarding checklist items for this project if not already seeded
+    const existing = await db.select().from(checklistItems).where(eq(checklistItems.projectId, account.projectId)).limit(1);
+    if (!existing[0]) {
+      await seedChecklistItems(account.projectId);
+    }
+
+    await logActivity({ action: "create", entityType: "client_account", entityId: account.id, description: `Created client portal login: ${email}`, userId: user.id, organizationId: user.organizationId });
+
+    res.status(201).json({
+      id: account.id,
+      email: account.email,
+      clientId: account.clientId,
+      projectId: account.projectId,
+      isActive: account.isActive,
+      createdAt: account.createdAt.toISOString(),
+    });
+  } catch (err: any) {
+    if (err.code === "23505") {
+      res.status(409).json({ error: "An account with this email already exists" });
+      return;
+    }
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// PATCH /api/admin/portal/client-accounts/:id — update client account (reset password, toggle active)
+router.patch("/client-accounts/:id", async (req, res) => {
+  try {
+    const user = (req as any).user;
+    const id = parseInt(req.params.id);
+    const { password, isActive } = req.body;
+
+    const existing = await db.select().from(clientAccounts).where(and(eq(clientAccounts.id, id), eq(clientAccounts.organizationId, user.organizationId))).limit(1);
+    if (!existing[0]) {
+      res.status(404).json({ error: "Account not found" });
+      return;
+    }
+
+    const updates: any = { updatedAt: new Date() };
+    if (password) updates.passwordHash = hashPassword(password);
+    if (typeof isActive === "boolean") updates.isActive = isActive;
+
+    const [updated] = await db.update(clientAccounts).set(updates).where(eq(clientAccounts.id, id)).returning();
+    res.json({ id: updated.id, email: updated.email, isActive: updated.isActive });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// PATCH /api/admin/portal/projects/:id/phase — advance or set project phase
+router.patch("/projects/:id/phase", async (req, res) => {
+  try {
+    const user = (req as any).user;
+    const id = parseInt(req.params.id);
+    const { phase } = req.body;
+    if (typeof phase !== "number" || phase < 1 || phase > 5) {
+      res.status(400).json({ error: "phase must be a number between 1 and 5" });
+      return;
+    }
+
+    const existing = await db.select().from(projects).where(and(eq(projects.id, id), eq(projects.organizationId, user.organizationId))).limit(1);
+    if (!existing[0]) {
+      res.status(404).json({ error: "Project not found" });
+      return;
+    }
+
+    const [updated] = await db.update(projects).set({ currentPhase: phase, updatedAt: new Date() }).where(eq(projects.id, id)).returning();
+    await logActivity({ action: "update", entityType: "project", entityId: id, description: `Advanced project to Phase ${phase}`, userId: user.id, organizationId: user.organizationId });
+    res.json({ id: updated.id, currentPhase: updated.currentPhase });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// PATCH /api/admin/portal/projects/:id/package — assign package to project
+router.patch("/projects/:id/package", async (req, res) => {
+  try {
+    const user = (req as any).user;
+    const id = parseInt(req.params.id);
+    const { packageId } = req.body;
+
+    const existing = await db.select().from(projects).where(and(eq(projects.id, id), eq(projects.organizationId, user.organizationId))).limit(1);
+    if (!existing[0]) {
+      res.status(404).json({ error: "Project not found" });
+      return;
+    }
+
+    const [updated] = await db.update(projects).set({ packageId: packageId ? parseInt(packageId) : null, updatedAt: new Date() }).where(eq(projects.id, id)).returning();
+    res.json({ id: updated.id, packageId: updated.packageId });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /api/admin/portal/projects/:id/portal-data — view full client portal data for a project
+router.get("/projects/:id/portal-data", async (req, res) => {
+  try {
+    const user = (req as any).user;
+    const id = parseInt(req.params.id);
+
+    const project = await db.select().from(projects).where(and(eq(projects.id, id), eq(projects.organizationId, user.organizationId))).limit(1);
+    if (!project[0]) {
+      res.status(404).json({ error: "Project not found" });
+      return;
+    }
+
+    const [checklist, discovery, feedback, testi] = await Promise.all([
+      db.select().from(checklistItems).where(eq(checklistItems.projectId, id)),
+      db.select().from(discoveryFormResponses).where(eq(discoveryFormResponses.projectId, id)).limit(1),
+      db.select().from(feedbackRounds).where(eq(feedbackRounds.projectId, id)),
+      db.select().from(testimonials).where(eq(testimonials.projectId, id)).limit(1),
+    ]);
+
+    res.json({
+      checklist,
+      discoveryResponse: discovery[0] ?? null,
+      feedbackRounds: feedback,
+      testimonial: testi[0] ?? null,
+      currentPhase: project[0].currentPhase,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// PATCH /api/admin/portal/feedback/:id — admin responds to feedback
+router.patch("/feedback/:id", async (req, res) => {
+  try {
+    const user = (req as any).user;
+    const id = parseInt(req.params.id);
+    const { adminNotes, status } = req.body;
+
+    const [updated] = await db.update(feedbackRounds)
+      .set({ adminNotes: adminNotes ?? null, status: status ?? "reviewed", updatedAt: new Date() })
+      .where(eq(feedbackRounds.id, id))
+      .returning();
+
+    if (!updated) {
+      res.status(404).json({ error: "Feedback not found" });
+      return;
+    }
+    res.json({ id: updated.id, adminNotes: updated.adminNotes, status: updated.status });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+async function seedChecklistItems(projectId: number) {
+  const items = [
+    // Phase 2 — Onboarding/Content Collection
+    { phase: 2, label: "Business logo files (SVG, PNG, AI)", description: "All logo variations: primary, white, dark, icon only", sortOrder: 1 },
+    { phase: 2, label: "Brand color palette", description: "Hex codes for all brand colors (primary, secondary, accents)", sortOrder: 2 },
+    { phase: 2, label: "Brand fonts", description: "Font files or Google Font names used in your brand", sortOrder: 3 },
+    { phase: 2, label: "Website copy / written content", description: "All page text: headings, body copy, CTAs, bio, services descriptions", sortOrder: 4 },
+    { phase: 2, label: "Professional photos", description: "Headshots, team photos, product/service imagery (high resolution)", sortOrder: 5 },
+    { phase: 2, label: "Testimonials & social proof", description: "Client reviews, case studies, or star ratings to feature", sortOrder: 6 },
+    { phase: 2, label: "Social media profile URLs", description: "Links to all active social profiles (Instagram, LinkedIn, Facebook, etc.)", sortOrder: 7 },
+    { phase: 2, label: "Domain name & hosting access", description: "Domain login credentials or transfer authorization code", sortOrder: 8 },
+    { phase: 2, label: "Examples / inspiration websites", description: "3-5 websites you like the look or feel of (optional but helpful)", sortOrder: 9 },
+    { phase: 2, label: "Business email address", description: "The email address(es) to set up on your domain", sortOrder: 10 },
+
+    // Phase 4 — Launch checklist (admin-facing, client tracks)
+    { phase: 4, label: "Final design approved by client", description: "Client has signed off on all pages and elements", sortOrder: 1 },
+    { phase: 4, label: "All content proofread", description: "Spelling, grammar, and accuracy reviewed", sortOrder: 2 },
+    { phase: 4, label: "Mobile responsiveness tested", description: "Site looks and works correctly on phone and tablet", sortOrder: 3 },
+    { phase: 4, label: "Domain connected and SSL live", description: "Custom domain is pointing to the new site with HTTPS enabled", sortOrder: 4 },
+    { phase: 4, label: "Google Analytics / tracking installed", description: "Analytics code verified and tracking active", sortOrder: 5 },
+    { phase: 4, label: "Contact forms tested", description: "All forms submitting successfully and email notifications confirmed", sortOrder: 6 },
+  ];
+
+  await db.insert(checklistItems).values(items.map(item => ({ ...item, projectId })));
+}
+
+export default router;

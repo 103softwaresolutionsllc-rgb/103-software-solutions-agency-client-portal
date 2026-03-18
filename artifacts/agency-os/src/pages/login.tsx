@@ -7,8 +7,8 @@ import { ArrowRight, Lock, Mail } from "lucide-react";
 
 export default function Login() {
   const { login } = useAuth();
-  const [email, setEmail] = useState("admin@103software.com");
-  const [password, setPassword] = useState("admin123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -17,9 +17,9 @@ export default function Login() {
     setError("");
     setIsSubmitting(true);
     try {
-      await login({ email, password });
-    } catch (err) {
-      setError("Invalid credentials. Try admin@103software.com / admin123");
+      await login(email, password);
+    } catch (err: any) {
+      setError(err?.message || "Invalid credentials. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -27,17 +27,16 @@ export default function Login() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background">
-      {/* Dynamic Background */}
       <div className="absolute inset-0 z-0">
-        <img 
-          src={`${import.meta.env.BASE_URL}images/login-bg.png`} 
-          alt="Abstract mesh background" 
+        <img
+          src={`${import.meta.env.BASE_URL}images/login-bg.png`}
+          alt="Abstract mesh background"
           className="w-full h-full object-cover opacity-40 mix-blend-screen"
         />
         <div className="absolute inset-0 bg-background/60 backdrop-blur-[100px]" />
       </div>
 
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
@@ -87,7 +86,7 @@ export default function Login() {
             </div>
 
             {error && (
-              <motion.p 
+              <motion.p
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 className="text-sm text-destructive text-center"
@@ -96,8 +95,8 @@ export default function Login() {
               </motion.p>
             )}
 
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="w-full h-14 rounded-2xl text-base group"
               disabled={isSubmitting}
             >
@@ -105,6 +104,16 @@ export default function Login() {
               <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
             </Button>
           </form>
+
+          <div className="mt-8 rounded-xl border border-white/5 bg-white/3 p-4 space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground tracking-wider">DEMO CREDENTIALS</p>
+            <div className="space-y-1 text-xs text-muted-foreground">
+              <p><span className="text-primary font-medium">Admin:</span> admin@103software.com / admin123</p>
+              <p><span className="text-emerald-400 font-medium">Client (Phase 3):</span> client@apexinnovations.com / client123</p>
+              <p><span className="text-yellow-400 font-medium">Client (Phase 2):</span> client@nexusdigital.com / client123</p>
+              <p><span className="text-purple-400 font-medium">Client (Phase 1):</span> client@summitanalytics.io / client123</p>
+            </div>
+          </div>
         </div>
       </motion.div>
     </div>
