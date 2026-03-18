@@ -44,6 +44,7 @@ export interface Client {
   company?: string | null;
   status: string;
   projectCount: number;
+  portalPhase?: number | null;
   organizationId: number;
   createdAt: string;
   updatedAt: string;
@@ -67,6 +68,9 @@ export interface Project {
   clientId: number;
   clientName: string;
   organizationId: number;
+  packageId?: number | null;
+  packageName?: string | null;
+  currentPhase?: number | null;
   taskCount: number;
   completedTaskCount: number;
   createdAt: string;
@@ -121,6 +125,16 @@ export interface Task {
   updatedAt: string;
 }
 
+export interface ClientsByPhaseItem {
+  phase: number;
+  count: number;
+}
+
+export interface ClientAccount {
+  email: string;
+  isActive: boolean;
+}
+
 export interface ProjectDetail {
   id: number;
   name: string;
@@ -131,6 +145,10 @@ export interface ProjectDetail {
   clientId: number;
   clientName: string;
   organizationId: number;
+  packageId?: number | null;
+  packageName?: string | null;
+  currentPhase?: number | null;
+  clientAccount?: ClientAccount | null;
   taskCount: number;
   completedTaskCount: number;
   phases: Phase[];
@@ -241,6 +259,7 @@ export interface DashboardMetrics {
   pendingTasks: number;
   revenueByMonth: RevenueMonth[];
   recentActivity: ActivityLog[];
+  clientsByPhase?: ClientsByPhaseItem[];
 }
 
 export type GetTasksParams = {

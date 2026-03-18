@@ -182,7 +182,6 @@ async function seed() {
   await db.insert(discoveryFormResponses).values({
     projectId: mobileApp.id,
     clientAccountId: apexClientAccount.id,
-    organizationId: org.id,
     responses: {
       businessName: "Apex Innovations Inc.",
       websiteGoal: "Launch a new mobile app to allow our enterprise clients to manage their workflows on the go. We need iOS and Android apps with real-time sync.",
@@ -200,7 +199,6 @@ async function seed() {
   await db.insert(feedbackRounds).values({
     projectId: mobileApp.id,
     clientAccountId: apexClientAccount.id,
-    organizationId: org.id,
     roundNumber: 1,
     designArea: "Overall Design",
     feedbackText: "The overall direction looks great! A few things we'd like to adjust:\n\n1. The dashboard cards feel a bit too spacious on desktop — can we tighten the padding so more content is visible above the fold?\n\n2. The blue in the navigation is slightly off — it should match our brand blue exactly (#0066FF), the current one looks slightly purple.\n\n3. We love the dark theme but our CEO wants to see a light mode option explored — can you show a quick mockup?\n\n4. The chart on the analytics page needs to be interactive — we should be able to hover for exact values.",

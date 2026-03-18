@@ -24,6 +24,7 @@ router.get("/", async (req, res) => {
         createdAt: clients.createdAt,
         updatedAt: clients.updatedAt,
         projectCount: sql<number>`count(${projects.id})`.mapWith(Number),
+        portalPhase: sql<number | null>`max(${projects.currentPhase})`,
       })
       .from(clients)
       .leftJoin(projects, eq(projects.clientId, clients.id))
@@ -33,6 +34,7 @@ router.get("/", async (req, res) => {
 
     res.json(rows.map(r => ({
       ...r,
+      portalPhase: r.portalPhase ?? null,
       createdAt: r.createdAt.toISOString(),
       updatedAt: r.updatedAt.toISOString(),
     })));

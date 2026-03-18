@@ -120,15 +120,15 @@ export default function Projects() {
                   </div>
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant={getStatusColor(project.status) as any}>{project.status.toUpperCase()}</Badge>
-                      {(project as any).packageName && (
+                      <Badge variant={getStatusColor(project.status) as "default" | "secondary" | "destructive" | "outline"}>{project.status.toUpperCase()}</Badge>
+                      {project.packageName && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-300 text-xs font-medium border border-purple-500/20">
-                          <Package className="h-3 w-3" />{(project as any).packageName}
+                          <Package className="h-3 w-3" />{project.packageName}
                         </span>
                       )}
-                      {(project as any).currentPhase && (
+                      {project.currentPhase && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium border border-primary/20">
-                          <Layers className="h-3 w-3" />Phase {(project as any).currentPhase}
+                          <Layers className="h-3 w-3" />Phase {project.currentPhase}
                         </span>
                       )}
                     </div>

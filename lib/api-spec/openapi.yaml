@@ -673,6 +673,9 @@ components:
           type: string
         projectCount:
           type: integer
+        portalPhase:
+          type: integer
+          nullable: true
         organizationId:
           type: integer
         createdAt:
@@ -722,6 +725,15 @@ components:
           type: string
         organizationId:
           type: integer
+        packageId:
+          type: integer
+          nullable: true
+        packageName:
+          type: string
+          nullable: true
+        currentPhase:
+          type: integer
+          nullable: true
         taskCount:
           type: integer
         completedTaskCount:
@@ -752,6 +764,24 @@ components:
           type: integer
       required: [name, status, clientId]
 
+    ClientsByPhaseItem:
+      type: object
+      properties:
+        phase:
+          type: integer
+        count:
+          type: integer
+      required: [phase, count]
+
+    ClientAccount:
+      type: object
+      properties:
+        email:
+          type: string
+        isActive:
+          type: boolean
+      required: [email, isActive]
+
     ProjectDetail:
       type: object
       properties:
@@ -776,6 +806,18 @@ components:
           type: string
         organizationId:
           type: integer
+        packageId:
+          type: integer
+          nullable: true
+        packageName:
+          type: string
+          nullable: true
+        currentPhase:
+          type: integer
+          nullable: true
+        clientAccount:
+          $ref: "#/components/schemas/ClientAccount"
+          nullable: true
         taskCount:
           type: integer
         completedTaskCount:
@@ -1090,6 +1132,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ActivityLog"
+        clientsByPhase:
+          type: array
+          items:
+            $ref: "#/components/schemas/ClientsByPhaseItem"
       required: [totalRevenue, activeProjects, totalClients, overdueInvoices, overdueAmount, pendingTasks, revenueByMonth, recentActivity]
 
     RevenueMonth:

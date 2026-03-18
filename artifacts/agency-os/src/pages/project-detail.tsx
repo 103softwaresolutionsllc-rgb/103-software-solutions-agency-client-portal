@@ -18,6 +18,43 @@ const PHASE_LABELS: Record<number, string> = {
   1: "Discovery", 2: "Onboarding", 3: "Production", 4: "Launch", 5: "Post-Launch"
 };
 
+interface ChecklistItem {
+  id: number;
+  label: string;
+  phase: number;
+  isCompleted: boolean;
+}
+
+interface FeedbackRound {
+  id: number;
+  roundNumber: number;
+  designArea: string | null;
+  feedbackText: string;
+  status: string;
+  adminNotes: string | null;
+}
+
+interface Testimonial {
+  id: number;
+  rating: number;
+  testimonialText: string;
+  isPublic: boolean;
+}
+
+interface DiscoveryFormResponse {
+  id: number;
+  projectId: number;
+  responses: Record<string, string>;
+  submittedAt: string | null;
+}
+
+interface AdminClientData {
+  discoveryResponse: DiscoveryFormResponse | null;
+  checklist: ChecklistItem[];
+  feedbackRounds: FeedbackRound[];
+  testimonial: Testimonial | null;
+}
+
 async function apiFetch(path: string, options?: RequestInit) {
   const res = await fetch(path, options);
   if (!res.ok) {
@@ -36,7 +73,7 @@ function useProjectDetail(id: number) {
 }
 
 function useClientData(projectId: number) {
-  return useQuery({
+  return useQuery<AdminClientData>({
     queryKey: [`/api/admin/portal/project/${projectId}/client-data`],
     queryFn: () => apiFetch(`/api/admin/portal/project/${projectId}/client-data`),
     enabled: !!projectId,
@@ -53,6 +90,27 @@ export default function ProjectDetail() {
   const [activeTab, setActiveTab] = useState<"overview" | "client-view">("overview");
   const [showClientModal, setShowClientModal] = useState(false);
   const [clientForm, setClientForm] = useState({ email: "", password: "" });
+  const [generatedPassword, setGeneratedPassword] = useState("");
+  const [copiedCredentials, setCopiedCredentials] = useState(false);
+
+  function generatePassword(): string {
+    const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#";
+    return Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  }
+
+  function openClientModal() {
+    const pwd = generatePassword();
+    setGeneratedPassword(pwd);
+    setClientForm({ email: "", password: pwd });
+    setCopiedCredentials(false);
+    setShowClientModal(true);
+  }
+
+  async function copyCredentials() {
+    await navigator.clipboard.writeText(`Email: ${clientForm.email}\nPassword: ${clientForm.password}`);
+    setCopiedCredentials(true);
+    setTimeout(() => setCopiedCredentials(false), 2000);
+  }
 
   const { data: project, isLoading } = useProjectDetail(projectId);
   const { data: clientData } = useClientData(projectId);
@@ -128,7 +186,7 @@ export default function ProjectDetail() {
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
             {!hasClientAccount && (
-              <Button onClick={() => setShowClientModal(true)} className="shrink-0">
+              <Button onClick={openClientModal} className="shrink-0">
                 <UserPlus className="mr-2 h-4 w-4" /> Create Client Login
               </Button>
             )}
@@ -139,7 +197,7 @@ export default function ProjectDetail() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="glass-card rounded-2xl p-5">
             <p className="text-xs text-muted-foreground mb-1">Status</p>
-            <Badge variant={project.status === "active" ? "success" : "secondary" as any} className="text-sm">
+            <Badge variant={project.status === "active" ? "success" : "secondary"} className="text-sm">
               {project.status.toUpperCase()}
             </Badge>
           </div>
@@ -237,7 +295,7 @@ export default function ProjectDetail() {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Account status</span>
-                    <Badge variant={project.clientAccount.isActive ? "success" : "secondary" as any}>
+                    <Badge variant={project.clientAccount.isActive ? "success" : "secondary"}>
                       {project.clientAccount.isActive ? "Active" : "Inactive"}
                     </Badge>
                   </div>
@@ -292,7 +350,7 @@ export default function ProjectDetail() {
                   </div>
                   {clientData.discoveryResponse ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {Object.entries(clientData.discoveryResponse.responses as Record<string, string>).map(([key, value]) => (
+                      {Object.entries(clientData.discoveryResponse.responses).map(([key, value]) => (
                         <div key={key} className="rounded-xl bg-white/3 p-4">
                           <p className="text-xs font-bold tracking-wider text-primary/70 mb-2">
                             {key.replace(/([A-Z])/g, " $1").toUpperCase()}
@@ -318,15 +376,15 @@ export default function ProjectDetail() {
                   {clientData.checklist?.length > 0 ? (
                     <div className="space-y-2">
                       {[2, 4].map(phase => {
-                        const items = (clientData.checklist as any[]).filter((i: any) => i.phase === phase);
-                        const done = items.filter((i: any) => i.isCompleted).length;
+                        const items = clientData.checklist.filter(i => i.phase === phase);
+                        const done = items.filter(i => i.isCompleted).length;
                         return items.length > 0 ? (
                           <div key={phase} className="mb-4">
                             <p className="text-xs font-bold tracking-wider text-muted-foreground mb-3">
                               PHASE {phase} — {done}/{items.length} COMPLETE
                             </p>
                             <div className="space-y-1.5">
-                              {items.map((item: any) => (
+                              {items.map((item) => (
                                 <div key={item.id} className="flex items-center gap-3 rounded-lg px-3 py-2 bg-white/2">
                                   {item.isCompleted
                                     ? <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
@@ -358,11 +416,11 @@ export default function ProjectDetail() {
                   </div>
                   {clientData.feedbackRounds?.length > 0 ? (
                     <div className="space-y-4">
-                      {(clientData.feedbackRounds as any[]).map((round: any) => (
+                      {clientData.feedbackRounds.map((round) => (
                         <div key={round.id} className="rounded-xl bg-white/3 p-5">
                           <div className="flex items-center justify-between mb-3">
                             <span className="text-sm font-bold text-foreground">Round {round.roundNumber} — {round.designArea}</span>
-                            <Badge variant={round.status === "reviewed" ? "success" : "warning" as any}>
+                            <Badge variant={round.status === "reviewed" ? "success" : "warning"}>
                               {round.status.toUpperCase()}
                             </Badge>
                           </div>
@@ -393,10 +451,10 @@ export default function ProjectDetail() {
                     </div>
                     <div className="flex gap-1 mb-3">
                       {[1, 2, 3, 4, 5].map(s => (
-                        <Star key={s} className={`h-5 w-5 ${s <= (clientData.testimonial as any).rating ? "text-yellow-400 fill-yellow-400" : "text-white/10"}`} />
+                        <Star key={s} className={`h-5 w-5 ${s <= clientData.testimonial!.rating ? "text-yellow-400 fill-yellow-400" : "text-white/10"}`} />
                       ))}
                     </div>
-                    <p className="text-foreground italic">&ldquo;{(clientData.testimonial as any).testimonialText}&rdquo;</p>
+                    <p className="text-foreground italic">&ldquo;{clientData.testimonial.testimonialText}&rdquo;</p>
                   </div>
                 )}
               </>
@@ -412,7 +470,7 @@ export default function ProjectDetail() {
           className="space-y-4"
         >
           <p className="text-sm text-muted-foreground">
-            Create a portal login for <strong className="text-foreground">{project.clientName}</strong>. They will use these credentials to access their project dashboard.
+            Create a portal login for <strong className="text-foreground">{project.clientName}</strong>. A secure password has been auto-generated — copy the credentials to share with the client.
           </p>
           <div>
             <label className="mb-2 block text-sm font-medium text-muted-foreground">Email Address</label>
@@ -425,17 +483,35 @@ export default function ProjectDetail() {
             />
           </div>
           <div>
-            <label className="mb-2 block text-sm font-medium text-muted-foreground">Password</label>
-            <Input
-              required
-              type="text"
-              value={clientForm.password}
-              onChange={e => setClientForm({ ...clientForm, password: e.target.value })}
-              placeholder="Choose a secure password"
-            />
-            <p className="mt-1.5 text-xs text-muted-foreground">Share this password with the client securely. You can change it later if needed.</p>
+            <label className="mb-2 block text-sm font-medium text-muted-foreground">Generated Password</label>
+            <div className="flex gap-2">
+              <Input
+                readOnly
+                type="text"
+                value={generatedPassword}
+                className="font-mono text-sm bg-white/5"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => { const pwd = generatePassword(); setGeneratedPassword(pwd); setClientForm(f => ({ ...f, password: pwd })); }}
+              >
+                Regenerate
+              </Button>
+            </div>
+            <p className="mt-1.5 text-xs text-muted-foreground">Password is auto-generated. Click "Copy Credentials" to copy both email and password to share securely.</p>
           </div>
-          <div className="pt-4 flex justify-end gap-4">
+          {clientForm.email && (
+            <button
+              type="button"
+              onClick={copyCredentials}
+              className="w-full rounded-xl border border-primary/30 bg-primary/5 text-primary text-sm font-medium py-2.5 hover:bg-primary/10 transition-colors"
+            >
+              {copiedCredentials ? "Copied!" : "Copy Credentials to Clipboard"}
+            </button>
+          )}
+          <div className="pt-2 flex justify-end gap-4">
             <Button type="button" variant="ghost" onClick={() => setShowClientModal(false)}>Cancel</Button>
             <Button type="submit" disabled={createClientAccountMutation.isPending}>
               {createClientAccountMutation.isPending ? "Creating..." : "Create Login"}

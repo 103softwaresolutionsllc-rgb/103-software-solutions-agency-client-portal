@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog } from "@/components/ui/dialog";
 import { motion } from "framer-motion";
-import { Plus, Search, MoreVertical, Edit2, Trash2, Building, Mail, Phone } from "lucide-react";
+import { Plus, Search, Edit2, Trash2, Building, Mail, Phone, Layers } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
@@ -103,15 +103,16 @@ export default function Clients() {
                   <th className="pb-4 font-semibold">Company</th>
                   <th className="pb-4 font-semibold">Contact Info</th>
                   <th className="pb-4 font-semibold">Status</th>
+                  <th className="pb-4 font-semibold">Portal Phase</th>
                   <th className="pb-4 font-semibold">Projects</th>
                   <th className="pb-4 font-semibold text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {isLoading ? (
-                  <tr><td colSpan={6} className="py-8 text-center text-muted-foreground">Loading clients...</td></tr>
+                  <tr><td colSpan={7} className="py-8 text-center text-muted-foreground">Loading clients...</td></tr>
                 ) : filteredClients.length === 0 ? (
-                  <tr><td colSpan={6} className="py-8 text-center text-muted-foreground">No clients found.</td></tr>
+                  <tr><td colSpan={7} className="py-8 text-center text-muted-foreground">No clients found.</td></tr>
                 ) : (
                   filteredClients.map((client) => (
                     <motion.tr 
@@ -135,6 +136,16 @@ export default function Clients() {
                         <Badge variant={client.status === 'active' ? 'success' : 'secondary'}>
                           {client.status.toUpperCase()}
                         </Badge>
+                      </td>
+                      <td className="py-4">
+                        {client.portalPhase ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold border border-primary/20">
+                            <Layers className="h-3 w-3" />
+                            Phase {client.portalPhase}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">No portal</span>
+                        )}
                       </td>
                       <td className="py-4 text-muted-foreground">{client.projectCount} Projects</td>
                       <td className="py-4 text-right">

@@ -77,7 +77,7 @@ export default function Dashboard() {
         </div>
 
         {/* Clients by Phase */}
-        {(metrics as any).clientsByPhase && (metrics as any).clientsByPhase.length > 0 && (
+        {metrics.clientsByPhase && metrics.clientsByPhase.length > 0 && (
           <div className="glass-card rounded-2xl p-6">
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-xl font-display font-bold">Portal — Clients by Phase</h3>
@@ -88,7 +88,7 @@ export default function Dashboard() {
                 const phaseLabels: Record<number, string> = {
                   1: "Discovery", 2: "Onboarding", 3: "Production", 4: "Launch", 5: "Post-Launch"
                 };
-                const found = ((metrics as any).clientsByPhase as { phase: number; count: number }[]).find(p => p.phase === phase);
+                const found = metrics.clientsByPhase!.find(p => p.phase === phase);
                 const count = found?.count ?? 0;
                 return (
                   <div key={phase} className={`rounded-xl p-4 text-center border ${count > 0 ? 'border-primary/30 bg-primary/5' : 'border-white/5 bg-white/2'}`}>
