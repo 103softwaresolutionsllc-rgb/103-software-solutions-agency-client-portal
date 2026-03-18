@@ -16,7 +16,7 @@ router.use(requireStaffAuth);
 // GET /api/admin/portal/packages — list packages for this org
 router.get("/packages", async (req, res) => {
   try {
-    const user = (req as any).user;
+    const user = req.user;
     const rows = await db.select().from(packages).where(eq(packages.organizationId, user.organizationId));
     res.json(rows.map(p => ({
       id: p.id,
@@ -35,7 +35,7 @@ router.get("/packages", async (req, res) => {
 // GET /api/admin/portal/client-accounts — list all client accounts
 router.get("/client-accounts", async (req, res) => {
   try {
-    const user = (req as any).user;
+    const user = req.user;
     const rows = await db
       .select({
         account: clientAccounts,
@@ -66,7 +66,7 @@ router.get("/client-accounts", async (req, res) => {
 // POST /api/admin/portal/client-accounts — create a client portal account
 router.post("/client-accounts", async (req, res) => {
   try {
-    const user = (req as any).user;
+    const user = req.user;
     const { email, password, clientId, projectId } = req.body;
     if (!email || !password || !clientId || !projectId) {
       res.status(400).json({ error: "email, password, clientId, and projectId are required" });
@@ -129,7 +129,7 @@ router.post("/client-accounts", async (req, res) => {
 // PATCH /api/admin/portal/client-accounts/:id — update client account (reset password, toggle active)
 router.patch("/client-accounts/:id", async (req, res) => {
   try {
-    const user = (req as any).user;
+    const user = req.user;
     const id = parseInt(req.params.id);
     const { password, isActive } = req.body;
 
@@ -139,7 +139,7 @@ router.patch("/client-accounts/:id", async (req, res) => {
       return;
     }
 
-    const updates: any = { updatedAt: new Date() };
+    const updates: Partial<{ passwordHash: string; isActive: boolean; updatedAt: Date }> = { updatedAt: new Date() };
     if (password) updates.passwordHash = hashPassword(password);
     if (typeof isActive === "boolean") updates.isActive = isActive;
 
@@ -154,7 +154,7 @@ router.patch("/client-accounts/:id", async (req, res) => {
 // PATCH /api/admin/portal/projects/:id/phase — advance or set project phase
 router.patch("/projects/:id/phase", async (req, res) => {
   try {
-    const user = (req as any).user;
+    const user = req.user;
     const id = parseInt(req.params.id);
     const { phase } = req.body;
     if (typeof phase !== "number" || phase < 1 || phase > 5) {
@@ -180,7 +180,7 @@ router.patch("/projects/:id/phase", async (req, res) => {
 // PATCH /api/admin/portal/projects/:id/package — assign package to project
 router.patch("/projects/:id/package", async (req, res) => {
   try {
-    const user = (req as any).user;
+    const user = req.user;
     const id = parseInt(req.params.id);
     const { packageId } = req.body;
 
@@ -201,7 +201,7 @@ router.patch("/projects/:id/package", async (req, res) => {
 // GET /api/admin/portal/projects/:id/portal-data — view full client portal data for a project
 router.get("/projects/:id/portal-data", async (req, res) => {
   try {
-    const user = (req as any).user;
+    const user = req.user;
     const id = parseInt(req.params.id);
 
     const project = await db.select().from(projects).where(and(eq(projects.id, id), eq(projects.organizationId, user.organizationId))).limit(1);
@@ -233,7 +233,7 @@ router.get("/projects/:id/portal-data", async (req, res) => {
 // GET /api/admin/portal/project/:id/client-data — alias for /projects/:id/portal-data (used by project detail page)
 router.get("/project/:id/client-data", async (req, res) => {
   try {
-    const user = (req as any).user;
+    const user = req.user;
     const id = parseInt(req.params.id);
 
     const project = await db.select().from(projects).where(and(eq(projects.id, id), eq(projects.organizationId, user.organizationId))).limit(1);
@@ -265,7 +265,7 @@ router.get("/project/:id/client-data", async (req, res) => {
 // PUT /api/admin/portal/project/:id/phase — alias for PATCH /projects/:id/phase (used by project detail page)
 router.put("/project/:id/phase", async (req, res) => {
   try {
-    const user = (req as any).user;
+    const user = req.user;
     const id = parseInt(req.params.id);
     const { phase } = req.body;
     if (typeof phase !== "number" || phase < 1 || phase > 5) {
@@ -291,7 +291,7 @@ router.put("/project/:id/phase", async (req, res) => {
 // PATCH /api/admin/portal/feedback/:id — admin responds to feedback (with org ownership check)
 router.patch("/feedback/:id", async (req, res) => {
   try {
-    const user = (req as any).user;
+    const user = req.user;
     const id = parseInt(req.params.id);
     const { adminNotes, status } = req.body;
 

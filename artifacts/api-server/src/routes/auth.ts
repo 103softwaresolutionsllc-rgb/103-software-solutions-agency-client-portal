@@ -75,9 +75,9 @@ router.post("/login", async (req, res) => {
 });
 
 router.get("/me", requireAuth, async (req, res) => {
-  const authType = (req as any).authType;
+  const authType = req.authType;
   if (authType === "client") {
-    const account = (req as any).clientAccount;
+    const account = req.clientAccount;
     const clientRow = await db.select().from(clients).where(eq(clients.id, account.clientId)).limit(1);
     res.json({
       id: account.id,
@@ -92,7 +92,7 @@ router.get("/me", requireAuth, async (req, res) => {
     });
     return;
   }
-  const user = (req as any).user;
+  const user = req.user;
   res.json({
     id: user.id,
     name: user.name,

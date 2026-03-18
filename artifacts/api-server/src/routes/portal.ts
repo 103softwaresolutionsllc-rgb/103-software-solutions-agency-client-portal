@@ -30,7 +30,7 @@ async function getClientProject(accountId: number, projectId: number) {
 // GET /api/portal/project — get full project overview for client
 router.get("/project", async (req, res) => {
   try {
-    const account = (req as any).clientAccount;
+    const account = req.clientAccount;
     const data = await getClientProject(account.id, account.projectId);
     if (!data) {
       res.status(404).json({ error: "Project not found" });
@@ -148,7 +148,7 @@ router.get("/project", async (req, res) => {
 // POST /api/portal/discovery — submit discovery form
 router.post("/discovery", async (req, res) => {
   try {
-    const account = (req as any).clientAccount;
+    const account = req.clientAccount;
     const { responses } = req.body;
     if (!responses || typeof responses !== "object") {
       res.status(400).json({ error: "responses object is required" });
@@ -190,7 +190,7 @@ router.post("/discovery", async (req, res) => {
 // PATCH /api/portal/checklist/:id — toggle checklist item
 router.patch("/checklist/:id", async (req, res) => {
   try {
-    const account = (req as any).clientAccount;
+    const account = req.clientAccount;
     const id = parseInt(req.params.id);
     const { isCompleted } = req.body;
 
@@ -230,7 +230,7 @@ router.patch("/checklist/:id", async (req, res) => {
 // POST /api/portal/feedback — submit a feedback round (max 2)
 router.post("/feedback", async (req, res) => {
   try {
-    const account = (req as any).clientAccount;
+    const account = req.clientAccount;
     const { feedbackText, designArea } = req.body;
     if (!feedbackText) {
       res.status(400).json({ error: "feedbackText is required" });
@@ -279,7 +279,7 @@ router.post("/feedback", async (req, res) => {
 // POST /api/portal/testimonial — submit testimonial + referral
 router.post("/testimonial", async (req, res) => {
   try {
-    const account = (req as any).clientAccount;
+    const account = req.clientAccount;
     const { rating, testimonialText, referralName, referralEmail } = req.body;
     if (!testimonialText) {
       res.status(400).json({ error: "testimonialText is required" });

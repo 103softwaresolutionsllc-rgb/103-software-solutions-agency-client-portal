@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { projects, clients, tasks, phases, milestones, users, packages, clientAccounts } from "@workspace/db/schema";
+import type { Project } from "@workspace/db/schema";
 import { eq, sql, and } from "drizzle-orm";
 import { requireStaffAuth } from "../lib/auth.js";
 import { logActivity } from "../lib/activity.js";
@@ -9,15 +10,22 @@ const router = Router();
 
 router.use(requireStaffAuth);
 
-function formatProject(p: any, clientName: string, taskCount: number, completedTaskCount: number, packageName?: string | null) {
+interface ProjectRow extends Project {
+  clientName: string;
+  taskCount: number;
+  completedTaskCount: number;
+  packageName?: string | null;
+}
+
+function formatProject(p: ProjectRow) {
   return {
     id: p.id, name: p.name, description: p.description, status: p.status,
-    budget: p.budget ? parseFloat(p.budget) : null,
+    budget: p.budget ? parseFloat(String(p.budget)) : null,
     dueDate: p.dueDate ? p.dueDate.toISOString() : null,
-    clientId: p.clientId, clientName,
-    organizationId: p.organizationId, taskCount, completedTaskCount,
+    clientId: p.clientId, clientName: p.clientName,
+    organizationId: p.organizationId, taskCount: p.taskCount, completedTaskCount: p.completedTaskCount,
     packageId: p.packageId ?? null,
-    packageName: packageName ?? null,
+    packageName: p.packageName ?? null,
     currentPhase: p.currentPhase ?? 1,
     createdAt: p.createdAt.toISOString(), updatedAt: p.updatedAt.toISOString(),
   };
@@ -25,7 +33,7 @@ function formatProject(p: any, clientName: string, taskCount: number, completedT
 
 router.get("/", async (req, res) => {
   try {
-    const user = (req as any).user;
+    const user = req.user;
     const rows = await db
       .select({
         id: projects.id, name: projects.name, description: projects.description,
@@ -45,7 +53,7 @@ router.get("/", async (req, res) => {
       .groupBy(projects.id, clients.name, packages.name)
       .orderBy(projects.createdAt);
 
-    res.json(rows.map(r => formatProject(r, r.clientName, r.taskCount, r.completedTaskCount, r.packageName)));
+    res.json(rows.map(r => formatProject(r as ProjectRow)));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Internal server error" });
@@ -54,7 +62,7 @@ router.get("/", async (req, res) => {
 
 router.post("/", async (req, res) => {
   try {
-    const user = (req as any).user;
+    const user = req.user;
     const { name, description, status, budget, dueDate, clientId } = req.body;
     if (!name || !clientId) {
       res.status(400).json({ error: "Name and clientId are required" });
@@ -68,7 +76,7 @@ router.post("/", async (req, res) => {
     }).returning();
     const client = await db.select().from(clients).where(eq(clients.id, project.clientId)).limit(1);
     await logActivity({ action: "create", entityType: "project", entityId: project.id, description: `Created project ${name}`, userId: user.id, organizationId: user.organizationId });
-    res.status(201).json(formatProject(project, client[0]?.name ?? "", 0, 0));
+    res.status(201).json(formatProject({ ...project, clientName: client[0]?.name ?? "", taskCount: 0, completedTaskCount: 0 }));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Internal server error" });
@@ -77,7 +85,7 @@ router.post("/", async (req, res) => {
 
 router.get("/:id", async (req, res) => {
   try {
-    const user = (req as any).user;
+    const user = req.user;
     const id = parseInt(req.params.id);
     const rows = await db
       .select({
@@ -123,7 +131,7 @@ router.get("/:id", async (req, res) => {
     ]);
 
     res.json({
-      ...formatProject(project, project.clientName, project.taskCount, project.completedTaskCount, project.packageName),
+      ...formatProject(project as ProjectRow),
       clientAccount: clientAccount[0] ?? null,
       phases: phasesData.map(p => ({ ...p, createdAt: p.createdAt.toISOString(), updatedAt: p.updatedAt.toISOString() })),
       milestones: milestonesData.map(m => ({ ...m, dueDate: m.dueDate ? m.dueDate.toISOString() : null, createdAt: m.createdAt.toISOString(), updatedAt: m.updatedAt.toISOString() })),
@@ -141,7 +149,7 @@ router.get("/:id", async (req, res) => {
 
 router.put("/:id", async (req, res) => {
   try {
-    const user = (req as any).user;
+    const user = req.user;
     const id = parseInt(req.params.id);
     const existing = await db.select().from(projects).where(eq(projects.id, id)).limit(1);
     if (!existing[0] || existing[0].organizationId !== user.organizationId) {
@@ -156,7 +164,7 @@ router.put("/:id", async (req, res) => {
     const counts = await db.select({ total: sql<number>`count(*)`.mapWith(Number), done: sql<number>`sum(case when status = 'done' then 1 else 0 end)`.mapWith(Number) }).from(tasks).where(eq(tasks.projectId, id));
     const pkg = updated.packageId ? await db.select({ name: packages.name }).from(packages).where(eq(packages.id, updated.packageId)).limit(1) : [];
     await logActivity({ action: "update", entityType: "project", entityId: id, description: `Updated project ${name}`, userId: user.id, organizationId: user.organizationId });
-    res.json(formatProject(updated, client[0]?.name ?? "", counts[0]?.total ?? 0, counts[0]?.done ?? 0, pkg[0]?.name ?? null));
+    res.json(formatProject({ ...updated, clientName: client[0]?.name ?? "", taskCount: counts[0]?.total ?? 0, completedTaskCount: counts[0]?.done ?? 0, packageName: pkg[0]?.name ?? null }));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Internal server error" });
@@ -165,7 +173,7 @@ router.put("/:id", async (req, res) => {
 
 router.delete("/:id", async (req, res) => {
   try {
-    const user = (req as any).user;
+    const user = req.user;
     const id = parseInt(req.params.id);
     const existing = await db.select().from(projects).where(eq(projects.id, id)).limit(1);
     if (!existing[0] || existing[0].organizationId !== user.organizationId) {

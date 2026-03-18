@@ -10,7 +10,7 @@ router.use(requireStaffAuth);
 
 router.get("/", async (req, res) => {
   try {
-    const user = (req as any).user;
+    const user = req.user;
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
     const offset = (page - 1) * limit;

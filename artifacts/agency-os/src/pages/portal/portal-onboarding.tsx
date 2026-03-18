@@ -2,7 +2,7 @@ import { useState } from "react";
 import { PortalLayout } from "@/components/layout/portal-layout";
 import { usePortalData } from "./use-portal-data";
 import { motion } from "framer-motion";
-import { Upload, CheckCircle2, Circle, ChevronDown, ChevronUp, Info } from "lucide-react";
+import { Upload, CheckCircle2, Circle, ChevronDown, ChevronUp, Info, FileDown, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { ChecklistItem } from "./use-portal-data";
 
@@ -80,6 +80,29 @@ export default function PortalOnboarding() {
               All items collected! We're ready to move into production.
             </motion.p>
           )}
+        </div>
+
+        {/* Welcome Packet */}
+        <div className="glass-card rounded-2xl p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-400/10 border border-emerald-400/20">
+              <FileDown className="h-4.5 w-4.5 text-emerald-400" />
+            </div>
+            <div>
+              <h3 className="font-bold text-foreground">Welcome Packet</h3>
+              <p className="text-xs text-muted-foreground">Your project overview and what to expect</p>
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            Your Welcome Packet includes your project timeline, communication guidelines, revision policy, and our team contacts. Please review it before completing the checklist below.
+          </p>
+          <a
+            href="mailto:hello@103software.com?subject=Welcome Packet Request"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-400/10 text-emerald-400 text-sm font-semibold border border-emerald-400/20 hover:bg-emerald-400/15 transition-colors"
+          >
+            <ExternalLink className="h-4 w-4" />
+            Request Welcome Packet
+          </a>
         </div>
 
         {/* How to share banner */}

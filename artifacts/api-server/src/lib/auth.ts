@@ -52,8 +52,8 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
       res.status(401).json({ error: "Client account not found or inactive" });
       return;
     }
-    (req as any).clientAccount = account[0];
-    (req as any).authType = "client";
+    req.clientAccount = account[0];
+    req.authType = "client";
     next();
     return;
   }
@@ -63,14 +63,14 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     res.status(401).json({ error: "User not found" });
     return;
   }
-  (req as any).user = user[0];
-  (req as any).authType = "staff";
+  req.user = user[0];
+  req.authType = "staff";
   next();
 }
 
 export async function requireStaffAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
   await requireAuth(req, res, async () => {
-    if ((req as any).authType !== "staff") {
+    if (req.authType !== "staff") {
       res.status(403).json({ error: "Staff access required" });
       return;
     }
@@ -80,7 +80,7 @@ export async function requireStaffAuth(req: Request, res: Response, next: NextFu
 
 export async function requireClientAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
   await requireAuth(req, res, async () => {
-    if ((req as any).authType !== "client") {
+    if (req.authType !== "client") {
       res.status(403).json({ error: "Client access required" });
       return;
     }

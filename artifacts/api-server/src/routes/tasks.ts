@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { tasks, projects, users } from "@workspace/db/schema";
+import type { Task } from "@workspace/db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { requireStaffAuth } from "../lib/auth.js";
 import { logActivity } from "../lib/activity.js";
@@ -9,11 +10,16 @@ const router = Router();
 
 router.use(requireStaffAuth);
 
-function formatTask(t: any, projectName: string) {
+interface TaskRow extends Task {
+  projectName: string;
+  assigneeName?: string | null;
+}
+
+function formatTask(t: TaskRow) {
   return {
     id: t.id, title: t.title, description: t.description, status: t.status, priority: t.priority,
     dueDate: t.dueDate ? t.dueDate.toISOString() : null,
-    projectId: t.projectId, projectName,
+    projectId: t.projectId, projectName: t.projectName,
     assigneeId: t.assigneeId, assigneeName: t.assigneeName ?? null,
     organizationId: t.organizationId,
     createdAt: t.createdAt.toISOString(), updatedAt: t.updatedAt.toISOString(),
@@ -22,7 +28,7 @@ function formatTask(t: any, projectName: string) {
 
 router.get("/", async (req, res) => {
   try {
-    const user = (req as any).user;
+    const user = req.user;
     const projectId = req.query.projectId ? parseInt(req.query.projectId as string) : undefined;
     const status = req.query.status as string | undefined;
 
@@ -44,7 +50,7 @@ router.get("/", async (req, res) => {
       .where(and(...conditions))
       .orderBy(tasks.createdAt);
 
-    res.json(rows.map(r => formatTask(r, r.projectName)));
+    res.json(rows.map(r => formatTask(r as TaskRow)));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Internal server error" });
@@ -53,7 +59,7 @@ router.get("/", async (req, res) => {
 
 router.post("/", async (req, res) => {
   try {
-    const user = (req as any).user;
+    const user = req.user;
     const { title, description, status, priority, dueDate, projectId, assigneeId } = req.body;
     if (!title || !projectId) {
       res.status(400).json({ error: "Title and projectId are required" });
@@ -69,7 +75,7 @@ router.post("/", async (req, res) => {
     const project = await db.select().from(projects).where(eq(projects.id, task.projectId)).limit(1);
     const assignee = task.assigneeId ? await db.select().from(users).where(eq(users.id, task.assigneeId)).limit(1) : [];
     await logActivity({ action: "create", entityType: "task", entityId: task.id, description: `Created task: ${title}`, userId: user.id, organizationId: user.organizationId });
-    res.status(201).json(formatTask({ ...task, assigneeName: assignee[0]?.name ?? null }, project[0]?.name ?? ""));
+    res.status(201).json(formatTask({ ...task, projectName: project[0]?.name ?? "", assigneeName: assignee[0]?.name ?? null }));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Internal server error" });
@@ -78,7 +84,7 @@ router.post("/", async (req, res) => {
 
 router.put("/:id", async (req, res) => {
   try {
-    const user = (req as any).user;
+    const user = req.user;
     const id = parseInt(req.params.id);
     const existing = await db.select().from(tasks).where(eq(tasks.id, id)).limit(1);
     if (!existing[0] || existing[0].organizationId !== user.organizationId) {
@@ -98,7 +104,7 @@ router.put("/:id", async (req, res) => {
     const project = await db.select().from(projects).where(eq(projects.id, updated.projectId)).limit(1);
     const assignee = updated.assigneeId ? await db.select().from(users).where(eq(users.id, updated.assigneeId)).limit(1) : [];
     await logActivity({ action: "update", entityType: "task", entityId: id, description: `Updated task: ${updated.title}`, userId: user.id, organizationId: user.organizationId });
-    res.json(formatTask({ ...updated, assigneeName: assignee[0]?.name ?? null }, project[0]?.name ?? ""));
+    res.json(formatTask({ ...updated, projectName: project[0]?.name ?? "", assigneeName: assignee[0]?.name ?? null }));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Internal server error" });
@@ -107,7 +113,7 @@ router.put("/:id", async (req, res) => {
 
 router.delete("/:id", async (req, res) => {
   try {
-    const user = (req as any).user;
+    const user = req.user;
     const id = parseInt(req.params.id);
     const existing = await db.select().from(tasks).where(eq(tasks.id, id)).limit(1);
     if (!existing[0] || existing[0].organizationId !== user.organizationId) {

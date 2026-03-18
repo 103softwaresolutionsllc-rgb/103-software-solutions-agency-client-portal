@@ -10,7 +10,7 @@ router.use(requireStaffAuth);
 
 router.get("/metrics", async (req, res) => {
   try {
-    const user = (req as any).user;
+    const user = req.user;
     const orgId = user.organizationId;
 
     const [
@@ -73,12 +73,12 @@ router.get("/metrics", async (req, res) => {
       `),
     ]);
 
-    const revenueByMonth = (revenueByMonthResult.rows as any[]).reverse().map((r: any) => ({
+    const revenueByMonth = (revenueByMonthResult.rows as { month: string; revenue: string }[]).reverse().map(r => ({
       month: r.month,
       revenue: parseFloat(r.revenue),
     }));
 
-    const clientsByPhase = (clientsByPhaseResult.rows as any[]).map((r: any) => ({
+    const clientsByPhase = (clientsByPhaseResult.rows as { phase: string; count: string }[]).map(r => ({
       phase: parseInt(r.phase),
       count: parseInt(r.count),
     }));
