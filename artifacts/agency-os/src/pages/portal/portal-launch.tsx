@@ -139,7 +139,7 @@ export default function PortalLaunch() {
         <div className="rounded-2xl border border-primary/20 bg-primary/5 p-6">
           <h3 className="font-bold text-foreground mb-2">Questions about your launch?</h3>
           <p className="text-sm text-muted-foreground">
-            Reach us at <span className="text-primary font-medium">support@103software.com</span> or reply to any of our project emails.
+            Reach us at <span className="text-primary font-medium">info@103softwaresolutions.com</span> or reply to any of our project emails.
             We're available Monday–Friday, 9am–6pm EST.
           </p>
         </div>

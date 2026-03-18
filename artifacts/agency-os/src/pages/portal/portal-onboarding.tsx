@@ -114,7 +114,7 @@ export default function PortalOnboarding() {
           <div>
             <p className="text-sm font-semibold text-foreground">How to share your assets</p>
             <p className="text-sm text-muted-foreground mt-1">
-              Send files to <span className="text-primary font-medium">assets@103software.com</span> with your project name in the subject line,
+              Send files to <span className="text-primary font-medium">info@103softwaresolutions.com</span> with your project name in the subject line,
               or share via Google Drive / Dropbox link. Check each item off as you send it.
             </p>
           </div>

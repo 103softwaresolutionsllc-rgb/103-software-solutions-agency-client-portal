@@ -304,7 +304,7 @@ export default function PortalPostLaunch() {
           <p className="text-sm text-muted-foreground">
             It's been an honor working with you. We're here whenever you need updates, new features, or your next project.
           </p>
-          <p className="mt-3 text-sm font-medium text-orange-400">support@103software.com</p>
+          <p className="mt-3 text-sm font-medium text-orange-400">info@103softwaresolutions.com</p>
         </div>
       </motion.div>
     </PortalLayout>
