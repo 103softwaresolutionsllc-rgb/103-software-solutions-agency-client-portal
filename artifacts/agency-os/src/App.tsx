@@ -10,6 +10,7 @@ import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
 import Clients from "@/pages/clients";
 import Projects from "@/pages/projects";
+import ProjectDetail from "@/pages/project-detail";
 import Tasks from "@/pages/tasks";
 import Invoices from "@/pages/invoices";
 
@@ -53,6 +54,9 @@ function Router() {
       </Route>
       <Route path="/clients">
         <AuthGuard allowedRoles={['staff']}><Clients /></AuthGuard>
+      </Route>
+      <Route path="/projects/:id">
+        {(params) => <AuthGuard allowedRoles={['staff']}><ProjectDetail /></AuthGuard>}
       </Route>
       <Route path="/projects">
         <AuthGuard allowedRoles={['staff']}><Projects /></AuthGuard>

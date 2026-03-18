@@ -1,7 +1,8 @@
 import { db } from "@workspace/db";
 import {
   organizations, users, clients, packages, projects, clientAccounts,
-  phases, milestones, tasks, invoices, activityLogs, checklistItems
+  phases, milestones, tasks, invoices, activityLogs, checklistItems,
+  discoveryFormResponses, feedbackRounds, testimonials
 } from "@workspace/db/schema";
 import crypto from "crypto";
 import { eq, and } from "drizzle-orm";
@@ -175,6 +176,38 @@ async function seed() {
     { invoiceNumber: "INV-2025-004", status: "overdue", amount: "9500", dueDate: new Date("2025-01-30"), paidDate: null, clientId: nexus.id, projectId: crm.id, organizationId: org.id },
     { invoiceNumber: "INV-2025-005", status: "draft", amount: "11250", dueDate: new Date("2025-04-01"), paidDate: null, clientId: summit.id, projectId: ecommerce.id, organizationId: org.id },
   ]);
+
+  // Seed discovery form response for Apex (Phase 3) — they completed Phase 1
+  const [apexClientAccount] = await db.select().from(clientAccounts).where(eq(clientAccounts.projectId, mobileApp.id)).limit(1);
+  await db.insert(discoveryFormResponses).values({
+    projectId: mobileApp.id,
+    clientAccountId: apexClientAccount.id,
+    organizationId: org.id,
+    responses: {
+      businessName: "Apex Innovations Inc.",
+      websiteGoal: "Launch a new mobile app to allow our enterprise clients to manage their workflows on the go. We need iOS and Android apps with real-time sync.",
+      targetAudience: "Enterprise mid-market businesses with 50-500 employees, primarily decision-makers aged 35-55 who are tech-savvy but not technical.",
+      competitors: "Salesforce Mobile, Monday.com, and Asana. We want to be cleaner and faster than all of them.",
+      designPreference: "Modern, dark theme preferred. Clean and minimalist. We like the look of Linear.app and Vercel's design language.",
+      existingBranding: "Yes, we have a full brand guide. Colors: Electric Blue (#0066FF) and Near-Black (#0A0A0F). Font: Inter for UI, Sora for display.",
+      timeline: "Hard deadline of Q3 2025 for initial App Store submission. We have a product launch event on July 15th.",
+      budget: "We've approved $60,000 for Phase 1 through Phase 3. Post-launch support is an add-on we'll discuss.",
+      additionalNotes: "Our CTO will be the main point of contact for technical decisions. Please CC Jordan at jordan@apexinnovations.com on all technical updates.",
+    },
+  });
+
+  // Seed one feedback round for Apex (they've submitted Round 1 and it's been reviewed)
+  await db.insert(feedbackRounds).values({
+    projectId: mobileApp.id,
+    clientAccountId: apexClientAccount.id,
+    organizationId: org.id,
+    roundNumber: 1,
+    designArea: "Overall Design",
+    feedbackText: "The overall direction looks great! A few things we'd like to adjust:\n\n1. The dashboard cards feel a bit too spacious on desktop — can we tighten the padding so more content is visible above the fold?\n\n2. The blue in the navigation is slightly off — it should match our brand blue exactly (#0066FF), the current one looks slightly purple.\n\n3. We love the dark theme but our CEO wants to see a light mode option explored — can you show a quick mockup?\n\n4. The chart on the analytics page needs to be interactive — we should be able to hover for exact values.",
+    status: "reviewed",
+    adminNotes: "Thanks for the detailed feedback! Here's our response to each point:\n\n1. Dashboard card padding — adjusted in the latest build. Preview link: [figma.com/link]\n2. Navigation blue — corrected to exact #0066FF match, updated across all screens\n3. Light mode mockup — we've added 3 light mode variations in the Figma file for you to review\n4. Interactive charts — all charts now have hover tooltips with exact values. We also added a date range picker.\n\nPlease review the updated Figma file and let us know if Round 2 feedback is needed!",
+  });
+  console.log("Created discovery form response and feedback round for Apex");
 
   await db.insert(activityLogs).values([
     { action: "create", entityType: "project", entityId: mobileApp.id, description: `Created project: ${mobileApp.name}`, userId: admin.id, organizationId: org.id },

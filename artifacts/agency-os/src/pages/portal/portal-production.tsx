@@ -31,7 +31,7 @@ const FEEDBACK_GUIDE = [
   },
   {
     title: "Use the Round system",
-    desc: "Each submission is a Feedback Round. You get up to 3 rounds of revisions included in your package."
+    desc: "Each submission is a Feedback Round. You get up to 2 rounds of revisions included in your package."
   },
   {
     title: "Consolidate feedback",
@@ -51,9 +51,13 @@ export default function PortalProduction() {
   const maxPhase = data?.package?.phases ?? 5;
   const feedbackRounds = data?.feedbackRounds ?? [];
 
+  const MAX_ROUNDS = 2;
+  const roundsUsed = feedbackRounds.length;
+  const atLimit = roundsUsed >= MAX_ROUNDS;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!feedbackText.trim()) return;
+    if (!feedbackText.trim() || atLimit) return;
     setSubmitting(true);
     try {
       const res = await fetch('/api/portal/feedback', {
@@ -61,6 +65,10 @@ export default function PortalProduction() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ feedbackText, designArea }),
       });
+      if (res.status === 429) {
+        toast({ title: "Feedback limit reached", description: "You've used all 2 included revision rounds. Contact us to purchase additional rounds.", variant: "destructive" });
+        return;
+      }
       if (!res.ok) throw new Error("Failed to submit");
       setFeedbackText("");
       toast({ title: "Feedback submitted!", description: "Our team will review and respond within 1-2 business days." });
@@ -124,36 +132,51 @@ export default function PortalProduction() {
 
         {/* Submit feedback */}
         <div className="glass-card rounded-2xl p-6">
-          <h2 className="text-lg font-bold text-foreground mb-4">Submit Feedback (Round {feedbackRounds.length + 1})</h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-2">Design Area</label>
-              <select
-                value={designArea}
-                onChange={e => setDesignArea(e.target.value)}
-                className="flex h-11 w-full rounded-xl border border-white/10 bg-input/50 px-4 py-2 text-sm text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary/50 outline-none"
-              >
-                {DESIGN_AREAS.map(a => <option key={a} value={a}>{a}</option>)}
-              </select>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-foreground">
+              {atLimit ? "Revision Rounds Used" : `Submit Feedback (Round ${roundsUsed + 1} of ${MAX_ROUNDS})`}
+            </h2>
+            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${atLimit ? 'bg-destructive/15 text-destructive' : 'bg-primary/10 text-primary'}`}>
+              {roundsUsed}/{MAX_ROUNDS} rounds used
+            </span>
+          </div>
+          {atLimit ? (
+            <div className="rounded-xl bg-destructive/5 border border-destructive/20 p-5 text-center">
+              <CheckCircle2 className="h-8 w-8 text-muted-foreground/40 mx-auto mb-3" />
+              <p className="text-sm font-semibold text-foreground mb-1">All included revision rounds used</p>
+              <p className="text-xs text-muted-foreground">Your package includes {MAX_ROUNDS} feedback rounds. To purchase additional revision rounds, contact us directly.</p>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-2">Your Feedback</label>
-              <textarea
-                value={feedbackText}
-                onChange={e => setFeedbackText(e.target.value)}
-                placeholder="Describe your feedback clearly and specifically. Reference specific sections, colors, or elements..."
-                rows={5}
-                required
-                className="w-full rounded-xl border border-white/10 bg-input/50 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary/50 outline-none resize-none"
-              />
-            </div>
-            <div className="flex justify-end">
-              <Button type="submit" disabled={submitting || !feedbackText.trim()} className="h-11 px-6 rounded-xl group">
-                {submitting ? "Submitting..." : "Submit Feedback"}
-                <Send className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
-          </form>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-2">Design Area</label>
+                <select
+                  value={designArea}
+                  onChange={e => setDesignArea(e.target.value)}
+                  className="flex h-11 w-full rounded-xl border border-white/10 bg-input/50 px-4 py-2 text-sm text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary/50 outline-none"
+                >
+                  {DESIGN_AREAS.map(a => <option key={a} value={a}>{a}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-2">Your Feedback</label>
+                <textarea
+                  value={feedbackText}
+                  onChange={e => setFeedbackText(e.target.value)}
+                  placeholder="Describe your feedback clearly and specifically. Reference specific sections, colors, or elements..."
+                  rows={5}
+                  required
+                  className="w-full rounded-xl border border-white/10 bg-input/50 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary/50 outline-none resize-none"
+                />
+              </div>
+              <div className="flex justify-end">
+                <Button type="submit" disabled={submitting || !feedbackText.trim()} className="h-11 px-6 rounded-xl group">
+                  {submitting ? "Submitting..." : "Submit Feedback"}
+                  <Send className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </form>
+          )}
         </div>
 
         {/* Previous rounds */}

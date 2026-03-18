@@ -2,12 +2,12 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { projects, clients, tasks, phases, milestones, users, packages, clientAccounts } from "@workspace/db/schema";
 import { eq, sql, and } from "drizzle-orm";
-import { requireAuth } from "../lib/auth.js";
+import { requireStaffAuth } from "../lib/auth.js";
 import { logActivity } from "../lib/activity.js";
 
 const router = Router();
 
-router.use(requireAuth);
+router.use(requireStaffAuth);
 
 function formatProject(p: any, clientName: string, taskCount: number, completedTaskCount: number, packageName?: string | null) {
   return {

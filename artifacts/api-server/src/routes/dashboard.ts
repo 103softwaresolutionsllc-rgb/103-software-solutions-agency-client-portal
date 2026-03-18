@@ -2,11 +2,11 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { projects, clients, invoices, tasks, activityLogs, users, clientAccounts } from "@workspace/db/schema";
 import { eq, and, sql, desc } from "drizzle-orm";
-import { requireAuth } from "../lib/auth.js";
+import { requireStaffAuth } from "../lib/auth.js";
 
 const router = Router();
 
-router.use(requireAuth);
+router.use(requireStaffAuth);
 
 router.get("/metrics", async (req, res) => {
   try {

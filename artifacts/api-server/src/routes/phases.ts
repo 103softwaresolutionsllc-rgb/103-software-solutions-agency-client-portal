@@ -2,13 +2,11 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { phases, milestones } from "@workspace/db/schema";
 import { eq, and } from "drizzle-orm";
-import { requireAuth } from "../lib/auth.js";
+import { requireStaffAuth } from "../lib/auth.js";
 
 const router = Router();
 
-router.use(requireAuth);
-
-router.get("/phases", async (req, res) => {
+router.get("/phases", requireStaffAuth, async (req, res) => {
   try {
     const projectId = req.query.projectId ? parseInt(req.query.projectId as string) : undefined;
     const where = projectId ? eq(phases.projectId, projectId) : undefined;
@@ -20,7 +18,7 @@ router.get("/phases", async (req, res) => {
   }
 });
 
-router.post("/phases", async (req, res) => {
+router.post("/phases", requireStaffAuth, async (req, res) => {
   try {
     const { name, description, order, status, projectId } = req.body;
     const [phase] = await db.insert(phases).values({
@@ -34,7 +32,7 @@ router.post("/phases", async (req, res) => {
   }
 });
 
-router.get("/milestones", async (req, res) => {
+router.get("/milestones", requireStaffAuth, async (req, res) => {
   try {
     const projectId = req.query.projectId ? parseInt(req.query.projectId as string) : undefined;
     const where = projectId ? eq(milestones.projectId, projectId) : undefined;
@@ -46,7 +44,7 @@ router.get("/milestones", async (req, res) => {
   }
 });
 
-router.post("/milestones", async (req, res) => {
+router.post("/milestones", requireStaffAuth, async (req, res) => {
   try {
     const { name, description, dueDate, completed, projectId, phaseId } = req.body;
     const [milestone] = await db.insert(milestones).values({

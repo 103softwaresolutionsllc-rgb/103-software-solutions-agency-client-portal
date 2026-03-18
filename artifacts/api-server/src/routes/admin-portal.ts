@@ -230,6 +230,64 @@ router.get("/projects/:id/portal-data", async (req, res) => {
   }
 });
 
+// GET /api/admin/portal/project/:id/client-data — alias for /projects/:id/portal-data (used by project detail page)
+router.get("/project/:id/client-data", async (req, res) => {
+  try {
+    const user = (req as any).user;
+    const id = parseInt(req.params.id);
+
+    const project = await db.select().from(projects).where(and(eq(projects.id, id), eq(projects.organizationId, user.organizationId))).limit(1);
+    if (!project[0]) {
+      res.status(404).json({ error: "Project not found" });
+      return;
+    }
+
+    const [checklist, discovery, feedback, testi] = await Promise.all([
+      db.select().from(checklistItems).where(eq(checklistItems.projectId, id)),
+      db.select().from(discoveryFormResponses).where(eq(discoveryFormResponses.projectId, id)).limit(1),
+      db.select().from(feedbackRounds).where(eq(feedbackRounds.projectId, id)),
+      db.select().from(testimonials).where(eq(testimonials.projectId, id)).limit(1),
+    ]);
+
+    res.json({
+      checklist,
+      discoveryResponse: discovery[0] ?? null,
+      feedbackRounds: feedback,
+      testimonial: testi[0] ?? null,
+      currentPhase: project[0].currentPhase,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// PUT /api/admin/portal/project/:id/phase — alias for PATCH /projects/:id/phase (used by project detail page)
+router.put("/project/:id/phase", async (req, res) => {
+  try {
+    const user = (req as any).user;
+    const id = parseInt(req.params.id);
+    const { phase } = req.body;
+    if (typeof phase !== "number" || phase < 1 || phase > 5) {
+      res.status(400).json({ error: "phase must be a number between 1 and 5" });
+      return;
+    }
+
+    const existing = await db.select().from(projects).where(and(eq(projects.id, id), eq(projects.organizationId, user.organizationId))).limit(1);
+    if (!existing[0]) {
+      res.status(404).json({ error: "Project not found" });
+      return;
+    }
+
+    const [updated] = await db.update(projects).set({ currentPhase: phase, updatedAt: new Date() }).where(eq(projects.id, id)).returning();
+    await logActivity({ action: "update", entityType: "project", entityId: id, description: `Advanced project to Phase ${phase}`, userId: user.id, organizationId: user.organizationId });
+    res.json({ id: updated.id, currentPhase: updated.currentPhase });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // PATCH /api/admin/portal/feedback/:id — admin responds to feedback (with org ownership check)
 router.patch("/feedback/:id", async (req, res) => {
   try {

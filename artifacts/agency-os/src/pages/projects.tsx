@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { useGetProjects, useCreateProject, useUpdateProject, useDeleteProject, useGetClients, type Project } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog } from "@/components/ui/dialog";
 import { motion } from "framer-motion";
-import { Plus, Edit2, Trash2, Calendar, Target, DollarSign, Package, Layers } from "lucide-react";
+import { Plus, Edit2, Trash2, Calendar, Target, DollarSign, Package, Layers, ExternalLink } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/utils";
@@ -14,6 +15,7 @@ import { formatCurrency } from "@/lib/utils";
 export default function Projects() {
   const { data: projects = [], isLoading } = useGetProjects();
   const { data: clients = [] } = useGetClients();
+  const [, navigate] = useLocation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   
@@ -131,6 +133,7 @@ export default function Projects() {
                       )}
                     </div>
                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => navigate(`/projects/${project.id}`)} className="text-muted-foreground hover:text-primary" title="View details"><ExternalLink className="h-4 w-4" /></button>
                       <button onClick={() => openModal(project)} className="text-muted-foreground hover:text-primary"><Edit2 className="h-4 w-4" /></button>
                       <button onClick={() => handleDelete(project.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></button>
                     </div>
