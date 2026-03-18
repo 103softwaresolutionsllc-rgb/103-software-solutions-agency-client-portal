@@ -17,7 +17,8 @@ import {
   Users, 
   AlertCircle,
   Activity,
-  ArrowUpRight
+  ArrowUpRight,
+  Layers
 } from "lucide-react";
 
 export default function Dashboard() {
@@ -74,6 +75,32 @@ export default function Dashboard() {
             </motion.div>
           ))}
         </div>
+
+        {/* Clients by Phase */}
+        {(metrics as any).clientsByPhase && (metrics as any).clientsByPhase.length > 0 && (
+          <div className="glass-card rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-xl font-display font-bold">Portal — Clients by Phase</h3>
+              <Layers className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              {[1, 2, 3, 4, 5].map(phase => {
+                const phaseLabels: Record<number, string> = {
+                  1: "Discovery", 2: "Onboarding", 3: "Production", 4: "Launch", 5: "Post-Launch"
+                };
+                const found = ((metrics as any).clientsByPhase as { phase: number; count: number }[]).find(p => p.phase === phase);
+                const count = found?.count ?? 0;
+                return (
+                  <div key={phase} className={`rounded-xl p-4 text-center border ${count > 0 ? 'border-primary/30 bg-primary/5' : 'border-white/5 bg-white/2'}`}>
+                    <div className={`text-2xl font-bold ${count > 0 ? 'text-primary' : 'text-muted-foreground'}`}>{count}</div>
+                    <div className="text-xs text-muted-foreground mt-1">Phase {phase}</div>
+                    <div className="text-xs text-muted-foreground font-medium">{phaseLabels[phase]}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           {/* Chart */}

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { projects, clients, tasks, phases, milestones, users } from "@workspace/db/schema";
+import { projects, clients, tasks, phases, milestones, users, packages, clientAccounts } from "@workspace/db/schema";
 import { eq, sql, and } from "drizzle-orm";
 import { requireAuth } from "../lib/auth.js";
 import { logActivity } from "../lib/activity.js";
@@ -9,13 +9,16 @@ const router = Router();
 
 router.use(requireAuth);
 
-function formatProject(p: any, clientName: string, taskCount: number, completedTaskCount: number) {
+function formatProject(p: any, clientName: string, taskCount: number, completedTaskCount: number, packageName?: string | null) {
   return {
     id: p.id, name: p.name, description: p.description, status: p.status,
     budget: p.budget ? parseFloat(p.budget) : null,
     dueDate: p.dueDate ? p.dueDate.toISOString() : null,
     clientId: p.clientId, clientName,
     organizationId: p.organizationId, taskCount, completedTaskCount,
+    packageId: p.packageId ?? null,
+    packageName: packageName ?? null,
+    currentPhase: p.currentPhase ?? 1,
     createdAt: p.createdAt.toISOString(), updatedAt: p.updatedAt.toISOString(),
   };
 }
@@ -29,17 +32,20 @@ router.get("/", async (req, res) => {
         status: projects.status, budget: projects.budget, dueDate: projects.dueDate,
         clientId: projects.clientId, clientName: clients.name,
         organizationId: projects.organizationId, createdAt: projects.createdAt, updatedAt: projects.updatedAt,
+        packageId: projects.packageId, currentPhase: projects.currentPhase,
+        packageName: packages.name,
         taskCount: sql<number>`count(${tasks.id})`.mapWith(Number),
         completedTaskCount: sql<number>`sum(case when ${tasks.status} = 'done' then 1 else 0 end)`.mapWith(Number),
       })
       .from(projects)
       .innerJoin(clients, eq(clients.id, projects.clientId))
       .leftJoin(tasks, eq(tasks.projectId, projects.id))
+      .leftJoin(packages, eq(packages.id, projects.packageId))
       .where(eq(projects.organizationId, user.organizationId))
-      .groupBy(projects.id, clients.name)
+      .groupBy(projects.id, clients.name, packages.name)
       .orderBy(projects.createdAt);
 
-    res.json(rows.map(r => formatProject(r, r.clientName, r.taskCount, r.completedTaskCount)));
+    res.json(rows.map(r => formatProject(r, r.clientName, r.taskCount, r.completedTaskCount, r.packageName)));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Internal server error" });
@@ -79,14 +85,17 @@ router.get("/:id", async (req, res) => {
         status: projects.status, budget: projects.budget, dueDate: projects.dueDate,
         clientId: projects.clientId, clientName: clients.name,
         organizationId: projects.organizationId, createdAt: projects.createdAt, updatedAt: projects.updatedAt,
+        packageId: projects.packageId, currentPhase: projects.currentPhase,
+        packageName: packages.name,
         taskCount: sql<number>`count(${tasks.id})`.mapWith(Number),
         completedTaskCount: sql<number>`sum(case when ${tasks.status} = 'done' then 1 else 0 end)`.mapWith(Number),
       })
       .from(projects)
       .innerJoin(clients, eq(clients.id, projects.clientId))
       .leftJoin(tasks, eq(tasks.projectId, projects.id))
+      .leftJoin(packages, eq(packages.id, projects.packageId))
       .where(and(eq(projects.id, id), eq(projects.organizationId, user.organizationId)))
-      .groupBy(projects.id, clients.name)
+      .groupBy(projects.id, clients.name, packages.name)
       .limit(1);
 
     const project = rows[0];
@@ -94,6 +103,13 @@ router.get("/:id", async (req, res) => {
       res.status(404).json({ error: "Not found" });
       return;
     }
+
+    // Fetch client account (if any) for this project
+    const clientAccount = await db
+      .select({ id: clientAccounts.id, email: clientAccounts.email, isActive: clientAccounts.isActive })
+      .from(clientAccounts)
+      .where(and(eq(clientAccounts.projectId, id), eq(clientAccounts.organizationId, user.organizationId)))
+      .limit(1);
 
     const [phasesData, milestonesData, tasksData] = await Promise.all([
       db.select().from(phases).where(eq(phases.projectId, id)).orderBy(phases.order),
@@ -107,7 +123,8 @@ router.get("/:id", async (req, res) => {
     ]);
 
     res.json({
-      ...formatProject(project, project.clientName, project.taskCount, project.completedTaskCount),
+      ...formatProject(project, project.clientName, project.taskCount, project.completedTaskCount, project.packageName),
+      clientAccount: clientAccount[0] ?? null,
       phases: phasesData.map(p => ({ ...p, createdAt: p.createdAt.toISOString(), updatedAt: p.updatedAt.toISOString() })),
       milestones: milestonesData.map(m => ({ ...m, dueDate: m.dueDate ? m.dueDate.toISOString() : null, createdAt: m.createdAt.toISOString(), updatedAt: m.updatedAt.toISOString() })),
       tasks: tasksData.map(t => ({
@@ -137,8 +154,9 @@ router.put("/:id", async (req, res) => {
       .where(eq(projects.id, id)).returning();
     const client = await db.select().from(clients).where(eq(clients.id, updated.clientId)).limit(1);
     const counts = await db.select({ total: sql<number>`count(*)`.mapWith(Number), done: sql<number>`sum(case when status = 'done' then 1 else 0 end)`.mapWith(Number) }).from(tasks).where(eq(tasks.projectId, id));
+    const pkg = updated.packageId ? await db.select({ name: packages.name }).from(packages).where(eq(packages.id, updated.packageId)).limit(1) : [];
     await logActivity({ action: "update", entityType: "project", entityId: id, description: `Updated project ${name}`, userId: user.id, organizationId: user.organizationId });
-    res.json(formatProject(updated, client[0]?.name ?? "", counts[0]?.total ?? 0, counts[0]?.done ?? 0));
+    res.json(formatProject(updated, client[0]?.name ?? "", counts[0]?.total ?? 0, counts[0]?.done ?? 0, pkg[0]?.name ?? null));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Internal server error" });

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { projects, clients, invoices, tasks, activityLogs, users } from "@workspace/db/schema";
+import { projects, clients, invoices, tasks, activityLogs, users, clientAccounts } from "@workspace/db/schema";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { requireAuth } from "../lib/auth.js";
 
@@ -21,6 +21,7 @@ router.get("/metrics", async (req, res) => {
       pendingTasksResult,
       revenueByMonthResult,
       recentActivityResult,
+      clientsByPhaseResult,
     ] = await Promise.all([
       db.select({ total: sql<number>`coalesce(sum(${invoices.amount}::numeric), 0)`.mapWith(Number) })
         .from(invoices)
@@ -61,11 +62,25 @@ router.get("/metrics", async (req, res) => {
         .where(eq(activityLogs.organizationId, orgId))
         .orderBy(desc(activityLogs.createdAt))
         .limit(10),
+      // Count client portal accounts grouped by the project's current phase
+      db.execute(sql`
+        SELECT p.current_phase as phase, count(*) as count
+        FROM client_accounts ca
+        INNER JOIN projects p ON p.id = ca.project_id
+        WHERE ca.organization_id = ${orgId} AND ca.is_active = true
+        GROUP BY p.current_phase
+        ORDER BY p.current_phase
+      `),
     ]);
 
     const revenueByMonth = (revenueByMonthResult.rows as any[]).reverse().map((r: any) => ({
       month: r.month,
       revenue: parseFloat(r.revenue),
+    }));
+
+    const clientsByPhase = (clientsByPhaseResult.rows as any[]).map((r: any) => ({
+      phase: parseInt(r.phase),
+      count: parseInt(r.count),
     }));
 
     res.json({
@@ -77,6 +92,7 @@ router.get("/metrics", async (req, res) => {
       pendingTasks: pendingTasksResult[0]?.count ?? 0,
       revenueByMonth,
       recentActivity: recentActivityResult.map(r => ({ ...r, createdAt: r.createdAt.toISOString() })),
+      clientsByPhase,
     });
   } catch (err) {
     console.error(err);

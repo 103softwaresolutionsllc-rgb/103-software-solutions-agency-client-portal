@@ -73,10 +73,21 @@ router.post("/client-accounts", async (req, res) => {
       return;
     }
 
-    // Verify client + project belong to this org
+    // Verify project belongs to this org
     const project = await db.select().from(projects).where(and(eq(projects.id, parseInt(projectId)), eq(projects.organizationId, user.organizationId))).limit(1);
     if (!project[0]) {
       res.status(404).json({ error: "Project not found" });
+      return;
+    }
+
+    // Verify client belongs to this org AND to this project
+    const client = await db.select().from(clients).where(and(eq(clients.id, parseInt(clientId)), eq(clients.organizationId, user.organizationId))).limit(1);
+    if (!client[0]) {
+      res.status(404).json({ error: "Client not found" });
+      return;
+    }
+    if (project[0].clientId !== parseInt(clientId)) {
+      res.status(400).json({ error: "Client does not belong to the specified project" });
       return;
     }
 
@@ -219,12 +230,25 @@ router.get("/projects/:id/portal-data", async (req, res) => {
   }
 });
 
-// PATCH /api/admin/portal/feedback/:id — admin responds to feedback
+// PATCH /api/admin/portal/feedback/:id — admin responds to feedback (with org ownership check)
 router.patch("/feedback/:id", async (req, res) => {
   try {
     const user = (req as any).user;
     const id = parseInt(req.params.id);
     const { adminNotes, status } = req.body;
+
+    // Verify the feedback belongs to a project in this org
+    const feedbackRow = await db
+      .select({ feedback: feedbackRounds, orgId: projects.organizationId })
+      .from(feedbackRounds)
+      .innerJoin(projects, eq(projects.id, feedbackRounds.projectId))
+      .where(eq(feedbackRounds.id, id))
+      .limit(1);
+
+    if (!feedbackRow[0] || feedbackRow[0].orgId !== user.organizationId) {
+      res.status(404).json({ error: "Feedback not found" });
+      return;
+    }
 
     const [updated] = await db.update(feedbackRounds)
       .set({ adminNotes: adminNotes ?? null, status: status ?? "reviewed", updatedAt: new Date() })

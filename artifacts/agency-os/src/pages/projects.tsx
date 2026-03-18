@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog } from "@/components/ui/dialog";
 import { motion } from "framer-motion";
-import { Plus, Edit2, Trash2, Calendar, Target, DollarSign } from "lucide-react";
+import { Plus, Edit2, Trash2, Calendar, Target, DollarSign, Package, Layers } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/utils";
@@ -117,7 +117,19 @@ export default function Projects() {
                     <div className="h-full bg-primary transition-all duration-1000" style={{ width: `${progress}%` }} />
                   </div>
                   <div className="flex justify-between items-start mb-4">
-                    <Badge variant={getStatusColor(project.status) as any}>{project.status.toUpperCase()}</Badge>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant={getStatusColor(project.status) as any}>{project.status.toUpperCase()}</Badge>
+                      {(project as any).packageName && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-300 text-xs font-medium border border-purple-500/20">
+                          <Package className="h-3 w-3" />{(project as any).packageName}
+                        </span>
+                      )}
+                      {(project as any).currentPhase && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium border border-primary/20">
+                          <Layers className="h-3 w-3" />Phase {(project as any).currentPhase}
+                        </span>
+                      )}
+                    </div>
                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button onClick={() => openModal(project)} className="text-muted-foreground hover:text-primary"><Edit2 className="h-4 w-4" /></button>
                       <button onClick={() => handleDelete(project.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></button>

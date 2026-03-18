@@ -227,7 +227,7 @@ router.patch("/checklist/:id", async (req, res) => {
   }
 });
 
-// POST /api/portal/feedback — submit a feedback round
+// POST /api/portal/feedback — submit a feedback round (max 2)
 router.post("/feedback", async (req, res) => {
   try {
     const account = (req as any).clientAccount;
@@ -237,11 +237,16 @@ router.post("/feedback", async (req, res) => {
       return;
     }
 
-    // Count existing rounds
+    // Count existing rounds — cap at 2
     const existing = await db
       .select()
       .from(feedbackRounds)
       .where(and(eq(feedbackRounds.projectId, account.projectId), eq(feedbackRounds.clientAccountId, account.id)));
+
+    if (existing.length >= 2) {
+      res.status(429).json({ error: "Maximum of 2 feedback rounds included in your package. Contact us to purchase additional rounds." });
+      return;
+    }
 
     const roundNumber = existing.length + 1;
 
