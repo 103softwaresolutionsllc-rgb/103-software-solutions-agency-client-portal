@@ -1,0 +1,16 @@
+packages:
+  "framer-motion": "For premium page transitions and micro-interactions"
+  "recharts": "For the dashboard revenue charts"
+  "clsx": "Utility for constructing className strings"
+  "tailwind-merge": "Utility for merging tailwind classes safely"
+  "date-fns": "For elegant date formatting"
+  "lucide-react": "For crisp, beautiful icons across the application"
+
+images:
+  - path: "artifacts/agency-os/public/images/login-bg.png"
+    description: "Dark, abstract electric cyan and deep purple gradient mesh background, sleek corporate tech feel with subtle glowing orbs and glass-like refractions"
+    aspect_ratio: "16:9"
+
+notes:
+  - "Using @workspace/api-client-react for TanStack Query hooks"
+  - "Window fetch is patched globally in App.tsx to automatically append the Auth Bearer token from localStorage to all requests."
