@@ -9,7 +9,7 @@
     },
     {
       "src": "artifacts/api-server",
-      "use": "@vercel/static-build",
+      "use": "@vercel/static-build", 
       "config": "artifacts/api-server/package.json"
     }
   ],
@@ -25,7 +25,7 @@
   ],
   "env": {
     "DATABASE_URL": "@database_url",
-    "PORT": "3000",
+    "PORT": "3000", 
     "HMAC_SECRET": "@hmac_secret"
   }
 }
