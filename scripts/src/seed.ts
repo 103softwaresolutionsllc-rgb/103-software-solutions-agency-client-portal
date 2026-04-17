@@ -14,6 +14,9 @@ function hashPassword(password: string): string {
 }
 
 async function seed() {
+  if (!db) {
+    throw new Error("Database not connected. Please set DATABASE_URL.");
+  }
   console.log("Seeding database...");
 
   const [org] = await db.insert(organizations).values({ name: "103 Software Solutions LLC" }).returning();

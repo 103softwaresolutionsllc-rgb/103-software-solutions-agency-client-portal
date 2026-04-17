@@ -13,6 +13,7 @@ router.use(requireClientAuth);
 
 // Helper to get the current client's project data
 async function getClientProject(accountId: number, projectId: number) {
+  if (!db) return null;
   const rows = await db
     .select({
       project: projects,
@@ -31,6 +32,10 @@ async function getClientProject(accountId: number, projectId: number) {
 router.get("/project", async (req, res) => {
   try {
     const account = req.clientAccount;
+    if (!account || !db) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     const data = await getClientProject(account.id, account.projectId);
     if (!data) {
       res.status(404).json({ error: "Project not found" });
@@ -169,6 +174,10 @@ router.get("/project", async (req, res) => {
 router.post("/discovery", async (req, res) => {
   try {
     const account = req.clientAccount;
+    if (!account || !db) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     const { responses } = req.body;
     if (!responses || typeof responses !== "object") {
       res.status(400).json({ error: "responses object is required" });
@@ -216,6 +225,10 @@ router.patch("/checklist/:id", async (req, res) => {
     const { isCompleted } = req.body;
 
     // Verify item belongs to client's project
+    if (!db) {
+      res.status(401).json({ error: "Service unavailable" });
+      return;
+    }
     const item = await db
       .select()
       .from(checklistItems)
@@ -258,6 +271,10 @@ router.patch("/checklist/:id", async (req, res) => {
 router.post("/feedback", async (req, res) => {
   try {
     const account = req.clientAccount;
+    if (!account || !db) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     const { feedbackText, designArea } = req.body;
     if (!feedbackText) {
       res.status(400).json({ error: "feedbackText is required" });
@@ -307,6 +324,10 @@ router.post("/feedback", async (req, res) => {
 router.post("/testimonial", async (req, res) => {
   try {
     const account = req.clientAccount;
+    if (!account || !db) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     const { rating, testimonialText, referralName, referralEmail } = req.body;
     if (!testimonialText) {
       res.status(400).json({ error: "testimonialText is required" });

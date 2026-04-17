@@ -105,16 +105,7 @@ export default function Login() {
             </Button>
           </form>
 
-          <div className="mt-8 rounded-xl border border-white/5 bg-white/3 p-4 space-y-2">
-            <p className="text-xs font-semibold text-muted-foreground tracking-wider">DEMO CREDENTIALS</p>
-            <div className="space-y-1 text-xs text-muted-foreground">
-              <p><span className="text-primary font-medium">Admin:</span> admin@103software.com / admin123</p>
-              <p><span className="text-emerald-400 font-medium">Client (Phase 3):</span> client@apexinnovations.com / client123</p>
-              <p><span className="text-yellow-400 font-medium">Client (Phase 2):</span> client@nexusdigital.com / client123</p>
-              <p><span className="text-purple-400 font-medium">Client (Phase 1):</span> client@summitanalytics.io / client123</p>
-            </div>
-          </div>
-        </div>
+                  </div>
       </motion.div>
     </div>
   );

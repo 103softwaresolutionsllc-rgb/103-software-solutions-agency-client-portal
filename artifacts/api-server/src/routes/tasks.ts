@@ -29,6 +29,10 @@ function formatTask(t: TaskRow) {
 router.get("/", async (req, res) => {
   try {
     const user = req.user;
+    if (!user || !db) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     const projectId = req.query.projectId ? parseInt(req.query.projectId as string) : undefined;
     const status = req.query.status as string | undefined;
 
@@ -60,6 +64,10 @@ router.get("/", async (req, res) => {
 router.post("/", async (req, res) => {
   try {
     const user = req.user;
+    if (!user || !db) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     const { title, description, status, priority, dueDate, projectId, assigneeId } = req.body;
     if (!title || !projectId) {
       res.status(400).json({ error: "Title and projectId are required" });
@@ -85,6 +93,10 @@ router.post("/", async (req, res) => {
 router.put("/:id", async (req, res) => {
   try {
     const user = req.user;
+    if (!user || !db) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     const id = parseInt(req.params.id);
     const existing = await db.select().from(tasks).where(eq(tasks.id, id)).limit(1);
     if (!existing[0] || existing[0].organizationId !== user.organizationId) {
@@ -114,6 +126,10 @@ router.put("/:id", async (req, res) => {
 router.delete("/:id", async (req, res) => {
   try {
     const user = req.user;
+    if (!user || !db) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     const id = parseInt(req.params.id);
     const existing = await db.select().from(tasks).where(eq(tasks.id, id)).limit(1);
     if (!existing[0] || existing[0].organizationId !== user.organizationId) {

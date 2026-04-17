@@ -12,6 +12,10 @@ router.use(requireStaffAuth);
 router.get("/", async (req, res) => {
   try {
     const user = req.user;
+    if (!user || !db) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     const rows = await db
       .select({
         id: clients.id,
@@ -47,6 +51,10 @@ router.get("/", async (req, res) => {
 router.post("/", async (req, res) => {
   try {
     const user = req.user;
+    if (!user || !db) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     const { name, email, phone, company, status } = req.body;
     if (!name || !email) {
       res.status(400).json({ error: "Name and email are required" });
@@ -69,6 +77,10 @@ router.post("/", async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     const user = req.user;
+    if (!user || !db) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     const id = parseInt(req.params.id);
     const rows = await db
       .select({
@@ -98,6 +110,10 @@ router.get("/:id", async (req, res) => {
 router.put("/:id", async (req, res) => {
   try {
     const user = req.user;
+    if (!user || !db) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     const id = parseInt(req.params.id);
     const existing = await db.select().from(clients).where(eq(clients.id, id)).limit(1);
     if (!existing[0] || existing[0].organizationId !== user.organizationId) {

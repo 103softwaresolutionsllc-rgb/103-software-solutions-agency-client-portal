@@ -9,6 +9,7 @@ export async function logActivity(params: {
   userId?: number;
   organizationId: number;
 }) {
+  if (!db) return;
   try {
     await db.insert(activityLogs).values({
       action: params.action,

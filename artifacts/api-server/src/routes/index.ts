@@ -1,4 +1,5 @@
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
+import { db } from "@workspace/db";
 import healthRouter from "./health.js";
 import authRouter from "./auth.js";
 import clientsRouter from "./clients.js";
@@ -12,6 +13,18 @@ import portalRouter from "./portal.js";
 import adminPortalRouter from "./admin-portal.js";
 
 const router: IRouter = Router();
+
+// Middleware to check database connection
+router.use((req, res, next) => {
+  if (req.path === "/healthz") return next();
+  if (!db) {
+    res.status(503).json({ 
+      error: "Database not connected. Please ensure DATABASE_URL is set." 
+    });
+    return;
+  }
+  next();
+});
 
 router.use(healthRouter);
 router.use("/auth", authRouter);

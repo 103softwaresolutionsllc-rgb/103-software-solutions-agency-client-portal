@@ -34,6 +34,10 @@ function formatProject(p: ProjectRow) {
 router.get("/", async (req, res) => {
   try {
     const user = req.user;
+    if (!user || !db) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     const rows = await db
       .select({
         id: projects.id, name: projects.name, description: projects.description,
@@ -63,6 +67,10 @@ router.get("/", async (req, res) => {
 router.post("/", async (req, res) => {
   try {
     const user = req.user;
+    if (!user || !db) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     const { name, description, status, budget, dueDate, clientId } = req.body;
     if (!name || !clientId) {
       res.status(400).json({ error: "Name and clientId are required" });
@@ -86,6 +94,10 @@ router.post("/", async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     const user = req.user;
+    if (!user || !db) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     const id = parseInt(req.params.id);
     const rows = await db
       .select({
@@ -150,6 +162,10 @@ router.get("/:id", async (req, res) => {
 router.put("/:id", async (req, res) => {
   try {
     const user = req.user;
+    if (!user || !db) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     const id = parseInt(req.params.id);
     const existing = await db.select().from(projects).where(eq(projects.id, id)).limit(1);
     if (!existing[0] || existing[0].organizationId !== user.organizationId) {
@@ -174,6 +190,10 @@ router.put("/:id", async (req, res) => {
 router.delete("/:id", async (req, res) => {
   try {
     const user = req.user;
+    if (!user || !db) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     const id = parseInt(req.params.id);
     const existing = await db.select().from(projects).where(eq(projects.id, id)).limit(1);
     if (!existing[0] || existing[0].organizationId !== user.organizationId) {

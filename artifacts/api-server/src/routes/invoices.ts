@@ -3,7 +3,7 @@ import { db } from "@workspace/db";
 import { invoices, clients, projects } from "@workspace/db/schema";
 import type { Invoice } from "@workspace/db/schema";
 import { eq, and } from "drizzle-orm";
-import { requireStaffAuth } from "../lib/auth.js";
+import { requireAuth, requireStaffAuth } from "../lib/auth.js";
 import { logActivity } from "../lib/activity.js";
 
 const router = Router();
@@ -31,6 +31,10 @@ function formatInvoice(i: InvoiceRow) {
 router.get("/", async (req, res) => {
   try {
     const user = req.user;
+    if (!user || !db) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     const rows = await db
       .select({
         id: invoices.id, invoiceNumber: invoices.invoiceNumber, status: invoices.status,
@@ -55,8 +59,12 @@ router.get("/", async (req, res) => {
 router.post("/", async (req, res) => {
   try {
     const user = req.user;
+    if (!user || !db) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     const { invoiceNumber, status, amount, dueDate, clientId, projectId } = req.body;
-    if (!invoiceNumber || !amount || !clientId) {
+    if (!invoiceNumber || amount === undefined || !clientId) {
       res.status(400).json({ error: "invoiceNumber, amount, and clientId are required" });
       return;
     }
@@ -79,6 +87,10 @@ router.post("/", async (req, res) => {
 router.put("/:id", async (req, res) => {
   try {
     const user = req.user;
+    if (!user || !db) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     const id = parseInt(req.params.id);
     const existing = await db.select().from(invoices).where(eq(invoices.id, id)).limit(1);
     if (!existing[0] || existing[0].organizationId !== user.organizationId) {
@@ -90,15 +102,14 @@ router.put("/:id", async (req, res) => {
       .set({
         ...(status && { status }),
         ...(amount !== undefined && { amount: String(amount) }),
-        dueDate: dueDate ? new Date(dueDate) : null,
-        paidDate: paidDate ? new Date(paidDate) : null,
+        ...(dueDate && { dueDate: new Date(dueDate) }),
+        ...(paidDate && { paidDate: new Date(paidDate) }),
         updatedAt: new Date(),
       })
-      .where(eq(invoices.id, id)).returning();
-    const client = await db.select().from(clients).where(eq(clients.id, updated.clientId)).limit(1);
-    const project = updated.projectId ? await db.select().from(projects).where(eq(projects.id, updated.projectId)).limit(1) : [];
-    await logActivity({ action: "update", entityType: "invoice", entityId: id, description: `Updated invoice ${updated.invoiceNumber} to ${updated.status}`, userId: user.id, organizationId: user.organizationId });
-    res.json(formatInvoice({ ...updated, clientName: client[0]?.name ?? "", projectName: project[0]?.name ?? null }));
+      .where(eq(invoices.id, id))
+      .returning();
+    await logActivity({ action: "update", entityType: "invoice", entityId: id, description: `Updated invoice ${updated.invoiceNumber}`, userId: user.id, organizationId: user.organizationId });
+    res.json(formatInvoice({ ...updated, clientName: "" }));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Internal server error" });

@@ -11,7 +11,27 @@ router.use(requireStaffAuth);
 router.get("/metrics", async (req, res) => {
   try {
     const user = req.user;
+    if (!user) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     const orgId = user.organizationId;
+
+    if (!db) {
+      console.warn("Database not connected, returning empty metrics");
+      res.json({
+        totalRevenue: 0,
+        activeProjects: 0,
+        totalClients: 0,
+        overdueInvoices: 0,
+        overdueAmount: 0,
+        pendingTasks: 0,
+        revenueByMonth: [],
+        recentActivity: [],
+        clientsByPhase: [],
+      });
+      return;
+    }
 
     const [
       revenueResult,

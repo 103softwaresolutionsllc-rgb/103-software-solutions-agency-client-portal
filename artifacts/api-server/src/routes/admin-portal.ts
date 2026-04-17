@@ -17,6 +17,10 @@ router.use(requireStaffAuth);
 router.get("/packages", async (req, res) => {
   try {
     const user = req.user;
+    if (!user || !db) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     const rows = await db.select().from(packages).where(eq(packages.organizationId, user.organizationId));
     res.json(rows.map(p => ({
       id: p.id,
@@ -36,6 +40,10 @@ router.get("/packages", async (req, res) => {
 router.get("/client-accounts", async (req, res) => {
   try {
     const user = req.user;
+    if (!user || !db) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     const rows = await db
       .select({
         account: clientAccounts,
@@ -67,6 +75,10 @@ router.get("/client-accounts", async (req, res) => {
 router.post("/client-accounts", async (req, res) => {
   try {
     const user = req.user;
+    if (!user || !db) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     const { email, password, clientId, projectId } = req.body;
     if (!email || !password || !clientId || !projectId) {
       res.status(400).json({ error: "email, password, clientId, and projectId are required" });
@@ -81,6 +93,10 @@ router.post("/client-accounts", async (req, res) => {
     }
 
     // Verify client belongs to this org AND to this project
+    if (!user || !db) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     const client = await db.select().from(clients).where(and(eq(clients.id, parseInt(clientId)), eq(clients.organizationId, user.organizationId))).limit(1);
     if (!client[0]) {
       res.status(404).json({ error: "Client not found" });
@@ -101,6 +117,10 @@ router.post("/client-accounts", async (req, res) => {
     }).returning();
 
     // Auto-seed onboarding checklist items for this project if not already seeded
+    if (!db) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     const existing = await db.select().from(checklistItems).where(eq(checklistItems.projectId, account.projectId)).limit(1);
     if (!existing[0]) {
       await seedChecklistItems(account.projectId);
@@ -130,6 +150,10 @@ router.post("/client-accounts", async (req, res) => {
 router.patch("/client-accounts/:id", async (req, res) => {
   try {
     const user = req.user;
+    if (!user || !db) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     const id = parseInt(req.params.id);
     const { password, isActive } = req.body;
 
@@ -155,6 +179,10 @@ router.patch("/client-accounts/:id", async (req, res) => {
 router.patch("/projects/:id/phase", async (req, res) => {
   try {
     const user = req.user;
+    if (!user || !db) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     const id = parseInt(req.params.id);
     const { phase } = req.body;
     if (typeof phase !== "number" || phase < 1 || phase > 5) {
@@ -181,6 +209,10 @@ router.patch("/projects/:id/phase", async (req, res) => {
 router.patch("/projects/:id/package", async (req, res) => {
   try {
     const user = req.user;
+    if (!user || !db) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     const id = parseInt(req.params.id);
     const { packageId } = req.body;
 
@@ -202,6 +234,10 @@ router.patch("/projects/:id/package", async (req, res) => {
 router.get("/projects/:id/portal-data", async (req, res) => {
   try {
     const user = req.user;
+    if (!user || !db) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     const id = parseInt(req.params.id);
 
     const project = await db.select().from(projects).where(and(eq(projects.id, id), eq(projects.organizationId, user.organizationId))).limit(1);
@@ -234,6 +270,10 @@ router.get("/projects/:id/portal-data", async (req, res) => {
 router.get("/projects/:id/client-data", async (req, res) => {
   try {
     const user = req.user;
+    if (!user || !db) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
     const id = parseInt(req.params.id);
 
     const project = await db.select().from(projects).where(and(eq(projects.id, id), eq(projects.organizationId, user.organizationId))).limit(1);

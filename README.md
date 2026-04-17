@@ -69,10 +69,10 @@ Database layer using Drizzle ORM with PostgreSQL. Exports a Drizzle client insta
 - `src/index.ts` — creates a `Pool` + Drizzle instance, exports schema
 - `src/schema/index.ts` — barrel re-export of all models
 - `src/schema/<modelname>.ts` — table definitions with `drizzle-zod` insert schemas (no models definitions exist right now)
-- `drizzle.config.ts` — Drizzle Kit config (requires `DATABASE_URL`, automatically provided by Replit)
+- `drizzle.config.ts` — Drizzle Kit config (requires `DATABASE_URL`)
 - Exports: `.` (pool, db, schema), `./schema` (schema only)
 
-Production migrations are handled by Replit when publishing. In development, we just use `pnpm --filter @workspace/db run push`, and we fallback to `pnpm --filter @workspace/db run push-force`.
+Production migrations are handled when deploying. In development, we just use `pnpm --filter @workspace/db run push`, and we fallback to `pnpm --filter @workspace/db run push-force`.
 
 ### `lib/api-spec` (`@workspace/api-spec`)
 
