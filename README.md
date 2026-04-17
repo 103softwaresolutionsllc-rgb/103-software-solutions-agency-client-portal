@@ -93,7 +93,67 @@ Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHea
 
 ### `artifacts/agency-os` (`@workspace/agency-os`)
 
-React + Vite client portal application for 103 Software Solutions LLC. Dual-role design: staff users see the admin dashboard, client users see the 5-phase client portal.
+React + Vite client portal application for 103 Software Solutions Agency Client Portal
+
+A full-stack client portal for managing website development projects through a 5-phase workflow.
+
+## 🚀 Quick Start
+
+### Development
+```bash
+# Install dependencies
+pnpm install
+
+# Start development servers
+pnpm run dev
+```
+
+### Production Deployment (Vercel Ready)
+```bash
+# Deploy to Vercel
+vercel
+
+# The project includes vercel.json configuration for easy deployment
+```
+
+## 📋 Project Structure
+
+- `artifacts/agency-os/` - Frontend (React + Vite)
+- `artifacts/api-server/` - Backend (Node.js + Express)
+- `lib/db/` - Database layer (Drizzle ORM)
+
+## 🔐 Environment Variables
+
+Create a `.env` file:
+
+```env
+DATABASE_URL=your_database_url_here
+PORT=3000
+HMAC_SECRET=your_secret_key_here
+```
+
+## 🎯 Features
+
+- **5-Phase Workflow**: Discovery → Onboarding → Production → Launch → Post-Launch
+- **Role-Based Access**: Admin dashboard and client portal
+- **Real-time Updates**: Live project status and progress tracking
+- **Secure Authentication**: JWT-based auth with role management
+- **Modern Tech Stack**: React, TypeScript, Node.js, Drizzle ORM
+
+## 📱 Demo Credentials
+
+**Admin Access:**
+- Email: `admin@103software.com`
+- Password: `admin123`
+
+**Client Access:**
+- Email: `client@apexinnovations.com` / Password: `client123`
+- Email: `client@nexusdigital.com` / Password: `client123`  
+- Email: `client@summitanalytics.io` / Password: `client123`
+
+---
+
+**Ready for Vercel deployment!** 🎉
 
 **Auth**: Single login page (`/login`) — dispatches to `/dashboard` (staff) or `/portal` (client) based on `accountType` in the JWT response.
 

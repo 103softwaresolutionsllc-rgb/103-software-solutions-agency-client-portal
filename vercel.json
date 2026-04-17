@@ -1,0 +1,31 @@
+{
+  "version": 2,
+  "name": "103-software-solutions-agency-client-portal",
+  "builds": [
+    {
+      "src": "artifacts/agency-os",
+      "use": "@vercel/static-build",
+      "config": "artifacts/agency-os/vite.config.ts"
+    },
+    {
+      "src": "artifacts/api-server",
+      "use": "@vercel/static-build",
+      "config": "artifacts/api-server/package.json"
+    }
+  ],
+  "routes": [
+    {
+      "src": "artifacts/api-server/src/index.ts",
+      "dest": "api/index.js"
+    },
+    {
+      "src": "artifacts/agency-os",
+      "dest": "index.html"
+    }
+  ],
+  "env": {
+    "DATABASE_URL": "@database_url",
+    "PORT": "3000",
+    "HMAC_SECRET": "@hmac_secret"
+  }
+}
